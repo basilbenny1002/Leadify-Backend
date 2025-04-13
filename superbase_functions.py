@@ -20,25 +20,25 @@ def get_values(table_name: str, *column_names: str, condition=None):
             password=PASSWORD,
             host=HOST,
             port=PORT,
-            dbname=DBNAME
+            dbname=DBNAME,
         )
         print("Connection successful!")
         cursor = connection.cursor()
-        # cursor.execute("INSERT INTO fruits (name) VALUES (%s);", ("Banana",))
-        # cursor.execute("SELECT * FROM fruits")
         cursor.execute(query)
-        print(cursor.fetchall())
-        result = cursor.fetchall()
-
+        rows = cursor.fetchall()
+        json_retult = {}
+        key = 0
+        for row in rows:
+            data = dict(zip(column_names, row))
+            json_retult[str(key)] = data
+            key+=1
         cursor.close()
         connection.commit()
         connection.close()
-        print("Connection closed.")
-        result_json = {i:}
-        return result
+        
+        return json_retult
     except Exception as e:
         print(f"Failed to connect: {e}")
-        result = [dict(zip(column_names, [float(val) if isinstance(val, Decimal) else val for val in row])) for row in rows]
 
 
 print(get_values("Test", "name", "age"))
