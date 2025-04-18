@@ -9,6 +9,34 @@ from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 load_dotenv()
 
+class AnyValue:
+    """
+    A class that returns the constructor value passed for any comparison operations
+    """
+    def __init__(self, choice: bool):
+        self.value = choice
+    def __eq__(self, other):
+        return self.value
+    def __ne__(self, other):
+        return self.value
+    def __lt__(self, other):
+        return self.value
+    def __le__(self, other):
+        return self.value
+    def __gt__(self, other):
+        return self.value
+    def __ge__(self, other):
+        return self.value
+
+def classify(choice_l: str, min_viewer_c: int, c: str, streams: dict):
+    if choice_l == streams['language']:
+        if min_viewer_c < streams['viewer_count']:
+            return True
+        else:
+            return False
+    else:
+        return False
+
 def is_valid_text(text: str) -> bool:
     pattern = r'^[a-zA-Z0-9~`!@#$%^&*()_\-+={}\[\]:;"\'<>,.?/\\| ]+$'
     return bool(re.match(pattern, text))
