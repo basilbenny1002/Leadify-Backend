@@ -15,7 +15,7 @@ min_followers = 0
 max_followers = 100000000000000
 min_viewer_count = 0
 category = None
-current_process = 1
+current_process = 0
 completed = 0
 
 elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
@@ -34,6 +34,7 @@ minimum_follower = 50000
 game_id = "32399"  # TODO: paste the game id you want to filter from
 output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
 # Initialising empty lists to store values
+datas = {}
 
 username = []
 followers = []
@@ -46,8 +47,46 @@ gmail = []
 streamers = []
 subscriber_count = []
 def initial():
+    global streams, elapsed, rate, remaining, valid_streamers, all_streamers, results_queue, completed
+    global min_followers, max_followers, choice_language, min_viewer_count, category, current_process   
+    ANYT = AnyValue(choice=True)
+    ANYF = AnyValue(choice=False)
+    choice_language = ANYT
+    min_followers = 0
+    max_followers = 100000000000000
+    min_viewer_count = 0
+    category = None
+    current_process = 1
+    completed = 0
+
+    elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
+
+    # Set up logging
+    logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
+                        format="%(asctime)s - %(levelname)s - %(message)s")
+
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    load_dotenv()
+    streams = None
+    access_token = os.getenv("access_token")  # TODO: paste your access token here
+    client_id = os.getenv("client_id")  # TODO: paste your client_id here
+    minimum_follower = 50000
+    game_id = "32399"  # TODO: paste the game id you want to filter from
+    output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
+    # Initialising empty lists to store values
+
+    username = []
+    followers = []
+    viewer_count = []
+    language = []
+    game_name = []
+    discord = []
+    youtube = []
+    gmail = []
+    streamers = []
+    subscriber_count = []
     current_process = "Started"
-    global streams, elapsed, rate, remaining, valid_streamers, all_streamers
     streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
 
 
@@ -77,6 +116,7 @@ def initial():
                     'followers': follower
                 }
                 streamers.append(streamer_info)
+                valid_streamers+=1
                 previous_streamers.append(streams[i]['user_name'])
             elapsed = pbar.format_dict["elapsed"]
             current = pbar.n
@@ -93,13 +133,14 @@ def initial():
             pbar.update(1)
     complete_streamer_list = {"Name": previous_streamers}
     print(previous_streamers)
-    valid_streamers = len(streamers)
+    # valid_streamers = len(streamers)
     logging.info("Found %d unique streamers", len(streamers))
     logging.info("Done collecting streamers with more than %d followers", minimum_follower)
     logging.info("Collecting other info")
-results_queue = queue.Queue()
+    results_queue = queue.Queue()
 
 def process_streamer(streamer, index):
+    global results_queue, completed
 
     if not is_valid_text(streamer['user_name']):
         logging.warning(f"Invalid username: {streamer['user_name']}")
@@ -204,6 +245,7 @@ def process_streamer(streamer, index):
 
 # Main processing with threading
 def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
+    
     """
 
     :param min_f:
@@ -214,8 +256,13 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     :return:
     """
     initial()
-    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id
-    min_followers = min_f, max_followers = max_f, choice_language = choice_l, min_viewer_count = min_viewer_c, category = c, game_id = c
+    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id, datas, results_queue
+    min_followers = min_f
+    max_followers = max_f
+    choice_language = choice_l
+    min_viewer_count = min_viewer_c
+    category = c
+    game_id = c
     current_process = 3 
 
     threads = []
@@ -223,6 +270,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
         x = 0
         while x < len(streamers):
             for i in tqdm(range(len(streamers)), desc="Getting more info"):
+                completed +=1
                 thread = threading.Thread(target=process_streamer, args=(streamers[i], i))
                 threads.append(thread)
                 thread.start()
@@ -235,7 +283,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
             for t in threads:
                 t.join()
             pbar.update(len(threads))
-            completed +=(len(threads))
 
             # Time tracking
             elapsed = pbar.format_dict["elapsed"]
@@ -265,14 +312,17 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
 
             while not results_queue.empty():
                 result = results_queue.get()
+                print(f"Result: {result}")
                 for key in datas:
                     datas[key].append(result[key])
-
-    df = pd.DataFrame(all_streamers)
-    df.to_csv("All streamers list.csv")
-    df = pd.DataFrame(datas)
-    df.to_csv(path_or_buf=output_file_name, index=False)
-    print(f"Processed {len(datas['username'])} streamers")
+            print(f"data is {datas}")
+        current_process = 4
+        df = pd.DataFrame(all_streamers)
+        df.to_csv("All streamers list.csv")
+        print(datas)
+        df = pd.DataFrame(datas)
+        df.to_csv(path_or_buf=output_file_name, index=False)
+        # print(f"Processed {len(datas['username'])} streamers")
 
 #
 # if __name__ == "__main__":

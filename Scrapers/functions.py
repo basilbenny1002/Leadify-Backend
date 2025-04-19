@@ -30,7 +30,7 @@ class AnyValue:
 
 
 
-def classify(choice_l: str, min_viewer_c: int, c: str, streams: dict):
+def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
         if min_viewer_c < streams['viewer_count']:
             return True
