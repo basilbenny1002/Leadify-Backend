@@ -7,3 +7,4 @@ test.py
 post_test.py
 Scrapers\.env.
 All streamers list.csv
+*.csv 
