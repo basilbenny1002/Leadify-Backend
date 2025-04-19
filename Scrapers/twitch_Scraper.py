@@ -1,18 +1,24 @@
 import os
 import pandas as pd
-from functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
+from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 import logging
 import datetime
 from dotenv import load_dotenv
 import threading
 import queue
+from Scrapers.functions import AnyValue, classify
+ANYT = AnyValue(choice=True)
+ANYF = AnyValue(choice=False)
+choice_language = ANYT
 min_followers = 0
 max_followers = 100000000000000
-choice_language, min_viewer_count = None, 0
+min_viewer_count = 0
 category = None
+current_process = 1
+completed = 0
 
-elapsed, remaining, valid_streamers = 0, 0, None
+elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
@@ -21,16 +27,14 @@ logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
 today = datetime.date.today()
 yesterday = today - datetime.timedelta(days=1)
 load_dotenv()
-
+streams = None
 access_token = os.getenv("access_token")  # TODO: paste your access token here
 client_id = os.getenv("client_id")  # TODO: paste your client_id here
 minimum_follower = 50000
 game_id = "32399"  # TODO: paste the game id you want to filter from
 output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
-
-streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
-
 # Initialising empty lists to store values
+
 username = []
 followers = []
 viewer_count = []
@@ -41,53 +45,61 @@ youtube = []
 gmail = []
 streamers = []
 subscriber_count = []
+def initial():
+    global streams, elapsed, rate, remaining, valid_streamers, all_streamers
+    streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
 
-previous_data = pd.read_csv(f"All streamers list.csv")
 
-previous_streamers = previous_data['Name'].tolist()
-all_streamers = {"Name": previous_streamers}
-  # TODO uncomment this part to make sure previous streamers thingy is working properly
-print(f"Found {len(streams)} streamers ")
-good_streamer_count = 0
-with tqdm(total=len(streams)) as pbar:
-    global elapsed, remaining
-    for i in range(len(streams)):
-        """
-        Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
-        """
-        follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
-        if follower > minimum_follower and streams[i]['user_name'] not in previous_streamers and follower < max_followers:
-            streamer_info = {
-                "user_name": streams[i]['user_name'],
-                "viewer_count": streams[i]['viewer_count'],
-                "language": streams[i]['language'],
-                'game_name': streams[i]['game_name'],
-                'followers': follower
-            }
-            streamers.append(streamer_info)
-            previous_streamers.append(streams[i]['user_name'])
-        elapsed = pbar.format_dict["elapsed"]
-        current = pbar.n
-        total = pbar.total
 
-        if current > 0 and total:
-            rate = elapsed / current
-            remaining = rate * (total - current)
-            pbar.set_postfix({
-                "Elapsed": f"{elapsed:.1f}s",
-                "Remaining": f"{remaining:.1f}s"
-            })
+    # previous_data = pd.read_csv(f"All streamers list.csv")
+    #
+    # previous_streamers = previous_data['Name'].tolist()
+    previous_streamers = []
+    all_streamers = {"Name": previous_streamers}
+      # TODO uncomment this part to make sure previous streamers thingy is working properly
+    print(f"Found {len(streams)} streamers ")
+    good_streamer_count = 0
+    with tqdm(total=len(streams)) as pbar:
+        # global elapsed, remaining, rate
+        current_process = 2
+        for i in range(len(streams)):
+            """
+            Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
+            """
+            follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
+            if follower > minimum_follower and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
+                streamer_info = {
+                    "user_name": streams[i]['user_name'],
+                    "viewer_count": streams[i]['viewer_count'],
+                    "language": streams[i]['language'],
+                    'game_name': streams[i]['game_name'],
+                    'followers': follower
+                }
+                streamers.append(streamer_info)
+                previous_streamers.append(streams[i]['user_name'])
+            elapsed = pbar.format_dict["elapsed"]
+            current = pbar.n
+            total = pbar.total
 
-        pbar.update(1)
-complete_streamer_list = {"Name": previous_streamers}
-print(previous_streamers)
-valid_streamers = len(streamers)
-logging.info("Found %d unique streamers", len(streamers))
-logging.info("Done collecting streamers with more than %d followers", minimum_follower)
-logging.info("Collecting other info")
+            if current > 0 and total:
+                rate = elapsed / current
+                remaining = rate * (total - current)
+                pbar.set_postfix({
+                    "Elapsed": f"{elapsed:.1f}s",
+                    "Remaining": f"{remaining:.1f}s"
+                })
+
+            pbar.update(1)
+    complete_streamer_list = {"Name": previous_streamers}
+    print(previous_streamers)
+    valid_streamers = len(streamers)
+    logging.info("Found %d unique streamers", len(streamers))
+    logging.info("Done collecting streamers with more than %d followers", minimum_follower)
+    logging.info("Collecting other info")
 results_queue = queue.Queue()
 
 def process_streamer(streamer, index):
+
     if not is_valid_text(streamer['user_name']):
         logging.warning(f"Invalid username: {streamer['user_name']}")
         return
@@ -200,8 +212,10 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     :param c:
     :return:
     """
-    global min_followers, max_followers, choice_language, min_viewer_count, category
-    min_followers, max_followers, choice_language, min_viewer_count, category = c
+    initial()
+    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id
+    min_followers, max_followers, choice_language, min_viewer_count, category = c, game_id = c
+    current_process = 3
 
     threads = []
     with tqdm(total=len(streamers), desc="Getting more info") as pbar:
@@ -220,6 +234,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
             for t in threads:
                 t.join()
             pbar.update(len(threads))
+            completed +=(len(threads))
 
             # Time tracking
             elapsed = pbar.format_dict["elapsed"]
@@ -258,6 +273,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     df.to_csv(path_or_buf=output_file_name, index=False)
     print(f"Processed {len(datas['username'])} streamers")
 
-
-if __name__ == "__main__":
-    start()
+#
+# if __name__ == "__main__":
+#     start()

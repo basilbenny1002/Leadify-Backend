@@ -3,7 +3,14 @@ from dotenv import load_dotenv
 import os
 import json
 from decimal import Decimal
+import psycopg2.extensions
+import decimal
+
+psycopg2.extensions.register_adapter(decimal.Decimal, str)
+psycopg2.extensions.register_adapter(decimal.Decimal, str)
+
 load_dotenv()
+
 
 # Fetch variables
 USER = os.getenv("user")
@@ -11,6 +18,7 @@ PASSWORD = os.getenv("password")
 HOST = os.getenv("host")
 PORT = os.getenv("port")
 DBNAME = os.getenv("dbname")
+
 
 def get_values(table_name: str, *column_names: str, condition=None):
     query = f"SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}"
@@ -24,7 +32,10 @@ def get_values(table_name: str, *column_names: str, condition=None):
         )
         print("Connection successful!")
         cursor = connection.cursor()
+        # cursor.execute("INSERT INTO fruits (name) VALUES (%s);", ("Banana",))
+        # cursor.execute("SELECT * FROM fruits")
         cursor.execute(query)
+        # print(cursor.fetchall())
         rows = cursor.fetchall()
         json_retult = {}
         key = 0
@@ -32,10 +43,12 @@ def get_values(table_name: str, *column_names: str, condition=None):
             data = dict(zip(column_names, row))
             json_retult[str(key)] = data
             key+=1
+        print(rows)
         cursor.close()
         connection.commit()
         connection.close()
-        
+        print(type(rows[0]))
+        print(type(rows[0][0]))
         return json_retult
     except Exception as e:
         print(f"Failed to connect: {e}")

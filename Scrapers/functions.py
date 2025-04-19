@@ -8,7 +8,6 @@ import functools
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 load_dotenv()
-
 class AnyValue:
     """
     A class that returns the constructor value passed for any comparison operations
@@ -28,6 +27,9 @@ class AnyValue:
     def __ge__(self, other):
         return self.value
 
+
+
+
 def classify(choice_l: str, min_viewer_c: int, c: str, streams: dict):
     if choice_l == streams['language']:
         if min_viewer_c < streams['viewer_count']:
@@ -36,6 +38,7 @@ def classify(choice_l: str, min_viewer_c: int, c: str, streams: dict):
             return False
     else:
         return False
+
 
 def is_valid_text(text: str) -> bool:
     pattern = r'^[a-zA-Z0-9~`!@#$%^&*()_\-+={}\[\]:;"\'<>,.?/\\| ]+$'
@@ -306,3 +309,11 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
     except:
         return mails
+
+
+if __name__ == '__main__':
+    t = AnyValue(choice=False)
+    print(t=="w")
+    print(t < 3)
+    print(t > 4)
+    print(t == 2)
