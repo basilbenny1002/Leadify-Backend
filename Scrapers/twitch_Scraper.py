@@ -46,6 +46,7 @@ gmail = []
 streamers = []
 subscriber_count = []
 def initial():
+    current_process = "Started"
     global streams, elapsed, rate, remaining, valid_streamers, all_streamers
     streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
 
@@ -214,8 +215,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     """
     initial()
     global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id
-    min_followers, max_followers, choice_language, min_viewer_count, category = c, game_id = c
-    current_process = 3
+    min_followers = min_f, max_followers = max_f, choice_language = choice_l, min_viewer_count = min_viewer_c, category = c, game_id = c
+    current_process = 3 
 
     threads = []
     with tqdm(total=len(streamers), desc="Getting more info") as pbar:

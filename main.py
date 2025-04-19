@@ -2,8 +2,9 @@ from typing import Union
 from pydantic import BaseModel
 from fastapi import FastAPI
 import threading
+import Scrapers
 
-import Scrapers.twitch_Scraper
+from Scrapers.twitch_Scraper import start
 from Scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -29,8 +30,9 @@ def start_scraper(**kwargs):
     data["time_remaining"]= "50240"
     return data
 @app.get("/Twitch_scraper")
-def run_Scraper(category: str, minimum_followers: Union[int, None] = Query(default=None), language: Union[str, None] = Query(default=None), viewer_count: Union[str, None] = Query(default=None) ):
-    thread = threading.Thread(target=start_scraper,kwargs={"category":category, "minimum_followers":minimum_followers if minimum_followers else ANYT, "language":language if language else ANYT, "viewer_count":viewer_count if viewer_count else ANYT})
+def run_Scraper(category: str, minimum_followers: Union[int, None] = Query(default=None), language: Union[str, None] = Query(default=None), viewer_count: Union[str, None] = Query(default=None),  maximum_followers: Union[str, None] = Query(default=None) ):
+    thread = threading.Thread(target=start,kwargs={"c":category, "min_f":minimum_followers if minimum_followers else ANYT, "choice_l":language if language else ANYT, "min_viewer_c":viewer_count if viewer_count else ANYT, "max_f": maximum_followers if maximum_followers else ANYT})
+    thread.start()  
     # data = start_scraper(category=category, minimum_followers=minimum_followers if minimum_followers else ANYT, language=language if minimum_followers else ANYT, viewer_count=viewer_count if viewer_count else ANYT)
     data = {"Status": "Started"}
     return JSONResponse(status_code=200, content=data)
