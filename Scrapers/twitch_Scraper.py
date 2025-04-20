@@ -3,6 +3,7 @@ import pandas as pd
 from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from Scrapers.functions import convert_to_percentage
 import logging
 import datetime
 import time
@@ -19,8 +20,11 @@ min_viewer_count = 0
 category = None
 current_process = 0
 completed = 0
+done = False
 
 elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
+total_streamers = 0
+percentage = 0
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
@@ -50,7 +54,8 @@ streamers = []
 subscriber_count = []
 def initial():
     global streams, elapsed, rate, remaining, valid_streamers, all_streamers, results_queue, completed, streamers
-    global min_followers, max_followers, choice_language, min_viewer_count, category, current_process   
+    global min_followers, max_followers, choice_language, min_viewer_count, category, current_process   , percentage, total_streamers
+    global access_token, client_id, minimum_follower, game_id, output_file_name, username, followers, viewer_count, language, game_name, discord, youtube, gmail, subscriber_count
     ANYT = AnyValue(choice=True)
     ANYF = AnyValue(choice=False)
     choice_language = ANYT
@@ -99,6 +104,7 @@ def initial():
     previous_streamers = []
     all_streamers = {"Name": previous_streamers}
       # TODO uncomment this part to make sure previous streamers thingy is working properly
+    total_streamers = len(streams)
     print(f"Found {len(streams)} streamers ")
     good_streamer_count = 0
     with tqdm(total=len(streams)) as pbar:
@@ -108,11 +114,10 @@ def initial():
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
             """
-            if valid_streamers > 10:
+            if valid_streamers > 9:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
             if follower > minimum_follower and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
-                print(f"Found streamer: {streams[i]['user_name']} with {follower} followers")
                 streamer_info = {
                     "user_name": streams[i]['user_name'],
                     "viewer_count": streams[i]['viewer_count'],
@@ -134,6 +139,7 @@ def initial():
                     "Elapsed": f"{elapsed:.1f}s",
                     "Remaining": f"{remaining:.1f}s"
                 })
+            percentage = convert_to_percentage(i, len(streams))
 
             pbar.update(1)
     complete_streamer_list = {"Name": previous_streamers}
@@ -145,7 +151,6 @@ def initial():
     results_queue = queue.Queue()
 
 def process_streamer(streamer, index):
-    print("Starting to process streamer:", flush=True)
     global results_queue, completed, current_process
     current_process = 3
     if not is_valid_text(streamer['user_name']):
@@ -160,7 +165,6 @@ def process_streamer(streamer, index):
 
     # Collect basic info
     try:
-        print("Creating the result dict", flush=True)
         result = {
             'username': streamer['user_name'],
             'followers': streamer['followers'],
@@ -183,15 +187,12 @@ def process_streamer(streamer, index):
         }
         #results_queue.put(result)
     except Exception as e:
-        print("Error creating result dict", flush=True)
-        print(f"Error processing streamer {streamer['user_name']}: {str(e)}", flush=True)
         logging.error(f"Error processing streamer {streamer['user_name']}: {str(e)}")
     
     completed += 1
 
     # Scrape Twitch about section with error handling
     try:
-        print("Scraping Twitch about section", flush=True)
         response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
@@ -201,20 +202,17 @@ def process_streamer(streamer, index):
         mail = response.get('emails', [])
         mails_found.update(mail)
     except Exception as e:
-        print(f"Error scraping Twitch about section{e}", flush=True)
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
         results_queue.put(result)
         return
 
     if not socials:
-        print("Couldn't find any social links", flush=True)
         result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else "Couldn't find a valid mail"
         results_queue.put(result)
         return
 
     # Process social links
     for social_links in socials:
-        print("Processing social links")
         if "youtube" in str(social_links).lower():
             yt_links.add(social_links)
         if "discord" in str(social_links).lower():
@@ -224,20 +222,16 @@ def process_streamer(streamer, index):
 
     # Process YouTube info
     if not yt_links:
-        print("Couldn't find any youtube links", flush=True)
         result.update({
             'youtube': "Couldn't find youtube",
             'subscriber_count': 0
         })
     else:
-        print("Found youtube links", flush=True)
         result['youtube'] = ", ".join(str(link) for link in yt_links)
         try:
-            print("Getting subscriber count", flush=True)
             subs = get_subscriber_count(list(yt_links)[0])
             result['subscriber_count'] = subs if subs else 0
         except Exception as e:
-            print("Error getting subscriber count")
             logging.error(f"Error getting YouTube subscriber count for {streamer['user_name']}: {str(e)}")
             result['subscriber_count'] = 0
 
@@ -246,9 +240,7 @@ def process_streamer(streamer, index):
 
     # Process Twitter and additional email scraping
     if twitter_links:
-        print("Found twitter links", flush=True)
         try:
-            print("Scraping Twitter profile", flush=True)
             twitter_response = scrape_twitter_profile(twitter_links[0])
             if isinstance(twitter_response, dict) and 'bio' in twitter_response:
                 bio = twitter_response['bio']
@@ -258,26 +250,20 @@ def process_streamer(streamer, index):
             else:
                 logging.warning(f"Invalid Twitter response for {streamer['user_name']}: {twitter_response}")
         except Exception as e:
-            print("Error scraping Twitter profile", flush=True)
             logging.error(f"Error scraping Twitter for {streamer['user_name']}: {str(e)}")
 
     if yt_links:
-        print("Found youtube links", flush=True)
         try:
-            print("Scraping YouTube", flush=True)
             youtube_mails = scrape_youtube(yt_links)
             if youtube_mails:
                 mails_found.update(youtube_mails)
         except Exception as e:
-            print("Error scraping YouTube", flush=True)
             logging.error(f"Error scraping YouTube for {streamer['user_name']}: {str(e)}")
 
     # Process email validation
     if not mails_found:
-        print("Couldn't find any emails", flush=True)
         result['gmail'] = "Couldn't find a valid gmail"
     else:
-        print("Found emails", flush=True)
         valid_mails = [i for i in set(mails_found) if is_valid_email(i)]
         result['gmail'] = ",".join(valid_mails) if valid_mails else "Couldn't find a valid mail"
 
@@ -288,7 +274,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     """
     Main function to start the scraping process.
     """
-    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id, datas, results_queue, current_process,streamers
+    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id, datas, results_queue, current_process,streamers, rate, elapsed, remaining, valid_streamers, total_streamers, percentage
+    global percentage, done
     min_followers = min_f
     max_followers = max_f
     choice_language = choice_l
@@ -303,32 +290,32 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     start_time = time.time()
     print(f"Streamers: {streamers}")
     print(f"Number of streamers: {len(streamers)}")
-    
-    for i in tqdm(range(len(streamers)), desc="Getting more info"):
-        print("Starting to process streamer:", flush=True)
+    completed = 0
+    for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            print("Creating thread", flush=True)
+
             thread = threading.Thread(target=process_streamer, args=(streamers[i], i))
             threads.append(thread)
             thread.start()
-            print("Thread started", flush=True)
         except Exception as e:
             print(f"Error occurred{e}:", flush=True)
         else:
-            print("Thread started successfully", flush=True)
+            pass
         if len(threads) >= 2:  #number of threads
             for t in threads:
                 t.join()
             threads = []
         elapsed = time.time() - start_time
         processed = i + 1
-        completed = processed
+        completed +=1
         avg_time = elapsed / processed
         rate = avg_time
         remaining = avg_time * (len(streamers) - processed)
+        percentage = convert_to_percentage(completed, len(streamers))
+
         
 
-        print(f"[{processed}/{len(streamers)}] Elapsed: {elapsed:.1f}s | Avg: {avg_time:.2f}s/iter | ETA: {remaining:.1f}s")
+        # print(f"[{processed}/{len(streamers)}] Elapsed: {elapsed:.1f}s | Avg: {avg_time:.2f}s/iter | ETA: {remaining:.1f}s")
 
 
     for t in threads:
@@ -354,6 +341,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
         'classify': [],
         'interested': []
     }
+    current_process = 4
 
     while not results_queue.empty():
         result = results_queue.get()
@@ -376,6 +364,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
     df = pd.DataFrame(datas)
     df.to_csv(path_or_buf=output_file_name, index=False)
     logging.info(f"Data saved to {output_file_name}")
+    done = True
 
 #
 # if __name__ == "__main__":

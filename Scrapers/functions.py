@@ -28,6 +28,18 @@ class AnyValue:
         return self.value
 
 
+def convert_to_percentage(value: int, max_value: int) -> int:
+    """
+    Converts a value to a percentage based on the given min and max values.
+    :param value:
+    :param max_value:
+    :return:
+    """ 
+    if max_value == 0:
+        return 0.0  # Avoid division by zero
+    return round((value / max_value) * 100)
+    # return int(percentage) 
+
 
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
