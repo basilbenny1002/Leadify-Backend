@@ -36,8 +36,8 @@ load_dotenv()
 streams = None
 access_token = os.getenv("access_token")  # TODO: paste your access token here
 client_id = os.getenv("client_id")  # TODO: paste your client_id here
-minimum_follower = 50000
-game_id = "32399"  # TODO: paste the game id you want to filter from
+minimum_follower = 0
+game_id = ""  # TODO: paste the game id you want to filter from
 output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
 # Initialising empty lists to store values
 datas = {}
@@ -58,15 +58,8 @@ def initial():
     global access_token, client_id, minimum_follower, game_id, output_file_name, username, followers, viewer_count, language, game_name, discord, youtube, gmail, subscriber_count
     ANYT = AnyValue(choice=True)
     ANYF = AnyValue(choice=False)
-    choice_language = ANYT
-    min_followers = 0
-    max_followers = 100000000000000
-    min_viewer_count = 0
-    category = None
-    current_process = 0
-    completed = 0
+    
 
-    elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
 
     # Set up logging
     logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
@@ -78,21 +71,9 @@ def initial():
     streams = None
     access_token = os.getenv("access_token")  # TODO: paste your access token here
     client_id = os.getenv("client_id")  # TODO: paste your client_id here
-    minimum_follower = 50000
-    game_id = "32399"  # TODO: paste the game id you want to filter from
     output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
-    # Initialising empty lists to store values
 
-    username = []
-    followers = []
-    viewer_count = []
-    language = []
-    game_name = []
-    discord = []
-    youtube = []
-    gmail = []
-    streamers = []
-    subscriber_count = []
+    
     current_process = 1
     streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
 
@@ -110,6 +91,7 @@ def initial():
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
         current_process = 2
+        print(f"finding streamers with more than {minimum_follower} followers, {max_followers} max followers, {min_viewer_count} min viewer count, language {choice_language}, category {category}")
         for i in range(len(streams)):
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
@@ -311,7 +293,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
         avg_time = elapsed / processed
         rate = avg_time
         remaining = avg_time * (len(streamers) - processed)
-        percentage = convert_to_percentage(completed, len(streamers))
+        percentage = convert_to_percentage(completed, len(streamers)-1)
 
         
 
