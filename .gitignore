@@ -5,3 +5,8 @@ scraper.log
 smootgh brain.png
 test.py
 post_test.py
+Scrapers\.env.
+All streamers list.csv
+*.csv 
+Scrapers\__pycache__
+Scrapers/JS components/node_modules/
