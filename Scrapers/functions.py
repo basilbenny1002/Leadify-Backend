@@ -255,7 +255,7 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', 'JS components/scraper.js', url],
+            ['node', r'C:\Coding projects\VS Code\Leadify backend github\Leadify-Backend\Scrapers\JS components\scraper.js', url],
             capture_output=True,
             text=True,
             check=True

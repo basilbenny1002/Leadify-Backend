@@ -9,6 +9,8 @@ from Scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
+
+import Scrapers.twitch_Scraper
 ANYT = AnyValue(choice=True)
 
 
@@ -38,8 +40,9 @@ def run_Scraper(category: str, minimum_followers: Union[int, None] = Query(defau
     return JSONResponse(status_code=200, content=data)
 
 @app.get("/Twitch_scraper/get_progress")
+
 def get_progress():
-    return JSONResponse(status_code=200, content={"Stage": Scrapers.twitch_Scraper.current_process, "Rate": Scrapers.twitch_Scraper.rate, "ETA": Scrapers.twitch_Scraper.remaining, "Streamers": Scrapers.twitch_Scraper.valid_streamers, "Completed": Scrapers.twitch_Scraper.completed})
+    return JSONResponse(status_code=200, content={"Stage": Scrapers.twitch_Scraper.current_process, "Rate": Scrapers.twitch_Scraper.rate, "ETA": Scrapers.twitch_Scraper.remaining, "Streamers": Scrapers.twitch_Scraper.valid_streamers, "Completed": Scrapers.twitch_Scraper.completed, "Percentage": None })
 class Item(BaseModel):
     name: str
     description: str = None
