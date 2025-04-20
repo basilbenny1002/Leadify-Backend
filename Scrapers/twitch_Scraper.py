@@ -36,7 +36,6 @@ load_dotenv()
 streams = None
 access_token = os.getenv("access_token")  # TODO: paste your access token here
 client_id = os.getenv("client_id")  # TODO: paste your client_id here
-minimum_follower = 0
 game_id = ""  # TODO: paste the game id you want to filter from
 output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
 # Initialising empty lists to store values
@@ -55,7 +54,7 @@ subscriber_count = []
 def initial():
     global streams, elapsed, rate, remaining, valid_streamers, all_streamers, results_queue, completed, streamers
     global min_followers, max_followers, choice_language, min_viewer_count, category, current_process   , percentage, total_streamers
-    global access_token, client_id, minimum_follower, game_id, output_file_name, username, followers, viewer_count, language, game_name, discord, youtube, gmail, subscriber_count
+    global access_token, client_id, min_followers, game_id, output_file_name, username, followers, viewer_count, language, game_name, discord, youtube, gmail, subscriber_count
     ANYT = AnyValue(choice=True)
     ANYF = AnyValue(choice=False)
     
@@ -91,7 +90,7 @@ def initial():
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
         current_process = 2
-        print(f"finding streamers with more than {minimum_follower} followers, {max_followers} max followers, {min_viewer_count} min viewer count, language {choice_language}, category {category}")
+        print(f"finding streamers with more than {min_followers} followers, {max_followers} max followers, {min_viewer_count} min viewer count, language {choice_language}, category {category}")
         for i in range(len(streams)):
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
@@ -99,7 +98,7 @@ def initial():
             if valid_streamers > 9:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
-            if follower > minimum_follower and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
+            if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
                 streamer_info = {
                     "user_name": streams[i]['user_name'],
                     "viewer_count": streams[i]['viewer_count'],
@@ -128,7 +127,7 @@ def initial():
     # print(previous_streamers)
     # valid_streamers = len(streamers)
     logging.info("Found %d unique streamers", len(streamers))
-    logging.info("Done collecting streamers with more than %d followers", minimum_follower)
+    logging.info("Done collecting streamers with more than %d followers", min_followers)
     logging.info("Collecting other info")
     results_queue = queue.Queue()
 
@@ -293,7 +292,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str):
         avg_time = elapsed / processed
         rate = avg_time
         remaining = avg_time * (len(streamers) - processed)
-        percentage = convert_to_percentage(completed, len(streamers)-1)
+        percentage = convert_to_percentage(completed+1, len(streamers))
 
         
 
