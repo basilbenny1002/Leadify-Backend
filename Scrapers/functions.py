@@ -28,11 +28,23 @@ class AnyValue:
         return self.value
 
 
+def convert_to_percentage(value: int, max_value: int) -> int:
+    """
+    Converts a value to a percentage based on the given min and max values.
+    :param value:
+    :param max_value:
+    :return:
+    """ 
+    if max_value == 0:
+        return 0.0  # Avoid division by zero
+    return round((value / max_value) * 100)
+    # return int(percentage) 
+
 
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
-        if min_viewer_c < streams['viewer_count']:
+        if int(min_viewer_c) < int(streams['viewer_count']):
             return True
         else:
             return False
@@ -255,7 +267,7 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', r'C:\Coding projects\VS Code\Leadify backend github\Leadify-Backend\Scrapers\JS components\scraper.js', url],
+            ['node', r'Scrapers\JS_components\scraper.js', url],
             capture_output=True,
             text=True,
             check=True
