@@ -14,9 +14,23 @@ import threading
 import queue
 from supabase import create_client
 import uuid
-
 import os
 from Scrapers.functions import AnyValue, classify
+from main import active_scrapers
+data_template = {
+    "Stage": "", "Rate": "", "ETA": "", "Streamers": "",
+    "Completed": "", "Percentage": "", "Total Streamers": "", 
+    "Done": "", "search_id": "", "download_url": ""
+}
+def update_progress(user_id, values: dict):
+    active_scrapers[user_id].update(values)
+    # print(f"Updated progress for {user_id}: {values}")
+
+def remove_progress(user_id):
+    if user_id in active_scrapers:
+        del active_scrapers[user_id]
+    
+
 ANYT = AnyValue(choice=True)
 ANYF = AnyValue(choice=False)
 choice_language = ANYT
@@ -64,9 +78,9 @@ youtube = []
 gmail = []
 streamers = []
 subscriber_count = []
-def initial():
-    global streams, elapsed, rate, remaining, valid_streamers, all_streamers, results_queue, completed, streamers
-    global min_followers, max_followers, choice_language, min_viewer_count, category, current_process,percentage, total_streamers
+def initial(user_id: str):
+    global streams, all_streamers, results_queue, streamers
+    global min_followers, max_followers, choice_language, min_viewer_count, category
     global access_token, client_id, min_followers, game_id, output_file_name, username, followers, viewer_count, language, game_name, discord, youtube, gmail, subscriber_count
     global search_id, download_url
     ANYT = AnyValue(choice=True)
@@ -86,7 +100,11 @@ def initial():
     client_id = os.getenv("client_id")  # TODO: paste your client_id here
     output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
 
-    
+    update_progress(user_id, values={
+    "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
+    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Done": "", "search_id": "", "download_url": ""
+    })  # Update progress with initial values
     current_process = 1
     streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
 
@@ -103,6 +121,11 @@ def initial():
     good_streamer_count = 0
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
+        update_progress(user_id, values={
+        "Stage": 2, "Rate": 0, "ETA": 0, "Streamers": 0,
+        "Completed": 0, "Percentage": 0, "Total Streamers": total_streamers, 
+        "Done": "", "search_id": "", "download_url": ""
+        }) 
         current_process = 2
         print(f"finding streamers with more than {min_followers} followers, {max_followers} max followers, {min_viewer_count} min viewer count, language {choice_language}, category {category}")
         for i in range(len(streams)):
@@ -135,6 +158,10 @@ def initial():
                     "Remaining": f"{remaining:.1f}s"
                 })
             percentage = convert_to_percentage(i, len(streams))
+            update_progress(user_id, values={
+        "Stage": 2, "Rate": rate, "ETA": remaining, "Streamers": valid_streamers,
+        "Completed": 0, "Percentage": percentage, 
+            }) 
 
             pbar.update(1)
     complete_streamer_list = {"Name": previous_streamers}
@@ -145,8 +172,8 @@ def initial():
     logging.info("Collecting other info")
     results_queue = queue.Queue()
 
-def process_streamer(streamer, index):
-    global results_queue, completed, current_process, percentage
+def process_streamer(streamer, index, user_id):
+    global results_queue
     current_process = 3
     if not is_valid_text(streamer['user_name']):
         logging.warning(f"Invalid username: {streamer['user_name']}")
@@ -267,14 +294,19 @@ def process_streamer(streamer, index):
     with lock:
         completed += 1
         percentage = convert_to_percentage(completed, len(streamers))
+    update_progress(user_id, values={ 
+    "Completed": completed, "Percentage": percentage
+    }) 
     results_queue.put(result)
+
+
 
 # Main processing with threading
 def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user_id: str):
     """
     Main function to start the scraping process.
     """
-    global min_followers, max_followers, choice_language, min_viewer_count, category, completed, game_id, datas, results_queue, current_process,streamers, rate, elapsed, remaining, valid_streamers, total_streamers, percentage, done, search_id, download_url
+    global min_followers, max_followers, choice_language, min_viewer_count, category, game_id, datas, results_queue,streamers, search_id, download_url
     completed = 0
     percentage = 0
     min_followers = min_f
@@ -283,9 +315,12 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     min_viewer_count = min_viewer_c
     category = c
     game_id = c
-    initial()
+    initial(user_id=user_id)  # Initialize the variables and get the list of streamers
 
     current_process = 3
+    update_progress(user_id, values={
+    "Stage": 3, "Rate": 0, "ETA": 0, "Streamers": 0,
+    "Completed": 0, "Percentage": 0})
 
     threads = []
     all_threads = []
@@ -294,7 +329,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            thread = threading.Thread(target=process_streamer, args=(streamers[i], i))
+            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
@@ -309,6 +344,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         avg_time = elapsed / processed
         rate = avg_time
         remaining = avg_time * (len(streamers) - processed)
+        update_progress(user_id, values={"Rate": avg_time, "ETA": remaining})
 
     for t in all_threads:
         t.join()
@@ -317,6 +353,9 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         if completed != len(streamers):
             completed = len(streamers)  # Force synchronization
             percentage = convert_to_percentage(completed, len(streamers))
+        update_progress(user_id, values={
+        "Completed": completed, "Percentage": percentage
+        })
 
     datas = {
         'username': [],
@@ -339,6 +378,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         'interested': []
     }
     current_process = 4
+    update_progress(user_id, values={
+    "Stage": 4, "Rate": 0, "ETA": 0})
 
     while not results_queue.empty():
         result = results_queue.get()
@@ -403,6 +444,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
 
     done = True
-#
-# if __name__ == "__main__":
-#     start()
+    update_progress(user_id, values={
+    "Stage": 5,"Done": True, "search_id": search_id,
+      "download_url": download_url
+    })  
