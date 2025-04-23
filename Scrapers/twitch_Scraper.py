@@ -298,10 +298,10 @@ def process_streamer(streamer, index, user_id):
     # Once processing is done
     
     with lock:
-        completed += 1
+        # completed += 1
         stage_3_percentage = convert_to_percentage(completed, len(streamers))
         update_progress(user_id, values={ 
-        "Completed": completed, "Percentage": stage_3_percentage
+        "Completed": active_scrapers[user_id]["Completed"] + 1, "Percentage": stage_3_percentage
         }) 
     results_queue.put(result)
 
