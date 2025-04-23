@@ -448,3 +448,5 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     "Stage": 5,"Done": True, "search_id": search_id,
       "download_url": download_url
     })  
+    time.sleep(0.600)
+    remove_progress(user_id)
