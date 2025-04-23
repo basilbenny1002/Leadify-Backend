@@ -121,13 +121,14 @@ def initial(user_id: str):
       # TODO uncomment this part to make sure previous streamers thingy is working properly
     total_streamers = len(streams)
     print(f"Found {len(streams)} streamers ")
-    good_streamer_count = 0
+    valid_streamers= 0
+    
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
         update_progress(user_id, values={
         "Stage": 2, "Rate": 0, "ETA": 0, "Streamers": 0,
         "Completed": 0, "Percentage": 0, "Total Streamers": total_streamers, 
-        "Done": "", "search_id": "", "download_url": ""
+        "Done": False, "search_id": "", "download_url": ""
         }) 
         current_process = 2
         print(f"finding streamers with more than {min_followers} followers, {max_followers} max followers, {min_viewer_count} min viewer count, language {choice_language}, category {category}")
@@ -152,17 +153,18 @@ def initial(user_id: str):
             elapsed = pbar.format_dict["elapsed"]
             current = pbar.n
             total = pbar.total
-
+            stage_2_rate = 0
+            stage_2_remaining = 0
             if current > 0 and total:
-                rate = elapsed / current
-                remaining = rate * (total - current)
+                stage_2_rate =  elapsed / current
+                stage_2_remaining = stage_2_rate * (total - current)
                 pbar.set_postfix({
                     "Elapsed": f"{elapsed:.1f}s",
-                    "Remaining": f"{remaining:.1f}s"
+                    "Remaining": f"{stage_2_remaining:.1f}s"
                 })
             percentage = convert_to_percentage(i, len(streams))
             update_progress(user_id, values={
-        "Stage": 2, "Rate": rate, "ETA": remaining, "Streamers": valid_streamers,
+        "Stage": 2, "Rate": stage_2_rate, "ETA": stage_2_remaining, "Streamers": valid_streamers,
         "Completed": 0, "Percentage": percentage, 
             }) 
 
@@ -294,12 +296,13 @@ def process_streamer(streamer, index, user_id):
         result['gmail'] = ",".join(valid_mails) if valid_mails else "Couldn't find a valid mail"
         
     # Once processing is done
+    
     with lock:
         completed += 1
-        percentage = convert_to_percentage(completed, len(streamers))
-    update_progress(user_id, values={ 
-    "Completed": completed, "Percentage": percentage
-    }) 
+        stage_3_percentage = convert_to_percentage(completed, len(streamers))
+        update_progress(user_id, values={ 
+        "Completed": completed, "Percentage": stage_3_percentage
+        }) 
     results_queue.put(result)
 
 
@@ -356,9 +359,9 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         if completed != len(streamers):
             completed = len(streamers)  # Force synchronization
             percentage = convert_to_percentage(completed, len(streamers))
-        update_progress(user_id, values={
-        "Completed": completed, "Percentage": percentage
-        })
+            update_progress(user_id, values={
+            "Completed": completed, "Percentage": percentage
+            })
 
     datas = {
         'username': [],
