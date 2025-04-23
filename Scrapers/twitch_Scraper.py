@@ -19,11 +19,13 @@ from Scrapers.functions import AnyValue, classify
 
 active_scrapers = {}
 data_template = {
-    "Stage": "", "Rate": "", "ETA": "", "Streamers": "",
-    "Completed": "", "Percentage": "", "Total Streamers": "", 
-    "Done": "", "search_id": "", "download_url": ""
+    "Stage": 0, "Rate": 0, "ETA": 0, "Streamers":0,
+    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Done": False, "search_id": "", "download_url": ""
 }
 def update_progress(user_id, values: dict):
+    if user_id not in active_scrapers:
+        active_scrapers[user_id] = data_template.copy()
     active_scrapers[user_id].update(values)
     # print(f"Updated progress for {user_id}: {values}")
 
@@ -51,7 +53,7 @@ percentage = 0
 
 lock = threading.Lock()
 
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
+supabase = create_client(os.getenv("NEXT_PUBLIC_SUPABASE_URL"), os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
 
 
 # Set up logging
@@ -99,7 +101,7 @@ def initial(user_id: str):
     streams = None
     access_token = os.getenv("access_token")  # TODO: paste your access token here
     client_id = os.getenv("client_id")  # TODO: paste your client_id here
-    output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
+    output_file_name = "test.csv"  # TODO: file name of the output, make sure to include .csv
 
     update_progress(user_id, values={
     "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
