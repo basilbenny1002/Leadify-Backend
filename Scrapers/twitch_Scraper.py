@@ -16,7 +16,8 @@ from supabase import create_client
 import uuid
 import os
 from Scrapers.functions import AnyValue, classify
-from main import active_scrapers
+
+active_scrapers = {}
 data_template = {
     "Stage": "", "Rate": "", "ETA": "", "Streamers": "",
     "Completed": "", "Percentage": "", "Total Streamers": "", 

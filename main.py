@@ -10,10 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
 import Scrapers.twitch_Scraper
-
+from Scrapers.twitch_Scraper import active_scrapers
 
 ANYT = AnyValue(choice=True)
-active_scrapers = {}
 
 app = FastAPI()
 app.add_middleware(
