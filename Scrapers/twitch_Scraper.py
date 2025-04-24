@@ -106,7 +106,7 @@ def initial(user_id: str):
     update_progress(user_id, values={
     "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
     "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
-    "Done": "", "search_id": "", "download_url": ""
+    "Done": False, "search_id": "", "download_url": ""
     })  # Update progress with initial values
     current_process = 1
     streams = get_live_streams(game_id, client_id=client_id, access_token=access_token)  # making the api request to get the list of live streamers
@@ -189,12 +189,17 @@ def process_streamer(streamer, index, user_id):
     dc_links = []
     twitter_links = []
     mails_found = set()
+    instagram_links = []
+    facebook_links = []
+    linkedin_links = []
+    tiktok_links = []
     percentage = convert_to_percentage(completed, len(streamers))
 
     # Collect basic info
     try:
         result = {
             'username': streamer['user_name'],
+            'channel url': f"https://www.twitch.tv/{streamer['user_name']}",
             'followers': streamer['followers'],
             'viewer_count': streamer['viewer_count'],
             'language': streamer['language'],
@@ -203,15 +208,11 @@ def process_streamer(streamer, index, user_id):
             'youtube': "Couldn't find youtube",
             'subscriber_count': 0,
             'gmail': "Couldn't find a valid mail",
-            'emailed': "No",
-            'second_f': "Null",
-            'third_follow_up': "Null",
-            'initial_contact_date': "Null",
-            'second_contact_date': "Null",
-            'third_contact_date': "Null",
-            'replied': "Null",
-            'classify': "Null",
-            'interested': "Null"
+            "instagram": "Couldn't find an instagram account",
+            "twitter": "Couldn't find a Twitter account",
+            "facebook":"Couldn't find a facebook account",
+            "tiktok": "Couldn't find a tiktok account",
+            "linkedin": "Couldn't find a linkedin account"
         }
         #results_queue.put(result)
     except Exception as e:
@@ -243,10 +244,28 @@ def process_streamer(streamer, index, user_id):
     for social_links in socials:
         if "youtube" in str(social_links).lower():
             yt_links.add(social_links)
+        if "tiktok" in str(social_links).lower():
+            tiktok_links.append(social_links)
+        if "linkedin" in str(social_links).lower():
+            linkedin_links.append(social_links)
+        if "facebook" in str(social_links).lower():
+            facebook_links.append(social_links)
         if "discord" in str(social_links).lower():
             dc_links.append(social_links)
         if "x" in str(social_links).lower() or "twitter" in str(social_links).lower():
             twitter_links.append(social_links)
+
+    if tiktok_links:
+        result['tiktok'] = ", ".join(str(link) for link in tiktok_links)
+
+    if linkedin_links:
+        result['linkedin'] = ", ".join(str(link) for link in linkedin_links)
+
+    if facebook_links:
+        result['facebook'] = ", ".join(str(link) for link in facebook_links)
+
+    if twitter_links:
+        result['twitter'] = ", ".join(str(link) for link in twitter_links)
 
     # Process YouTube info
     if not yt_links:
@@ -373,15 +392,11 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         'youtube': [],
         'gmail': [],
         'subscriber_count': [],
-        'emailed': [],
-        'second_f': [],
-        'third_follow_up': [],
-        'initial_contact_date': [],
-        'second_contact_date': [],
-        'third_contact_date': [],
-        'replied': [],
-        'classify': [],
-        'interested': []
+        "instagram": [],
+        "twitter": [],
+        "facebook":[],
+        "tiktok": [],
+        "linkedin": [] 
     }
     current_process = 4
     update_progress(user_id, values={
