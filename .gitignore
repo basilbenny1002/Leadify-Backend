@@ -10,3 +10,4 @@ All streamers list.csv
 *.csv 
 Scrapers\__pycache__\
 Scrapers\JS_components\node_modules\
+Scrapers/JS_components/node_modules/
