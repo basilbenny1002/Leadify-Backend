@@ -44,7 +44,7 @@ def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None]
 def get_progress(user_id: str):
     # return JSONResponse(status_code=200, content={"Stage": Scrapers.twitch_Scraper.current_process, "Rate": Scrapers.twitch_Scraper.rate, "ETA": Scrapers.twitch_Scraper.remaining, "Streamers": Scrapers.twitch_Scraper.valid_streamers, "Completed": Scrapers.twitch_Scraper.completed, "Percentage": Scrapers.twitch_Scraper.percentage, "Total Streamers": Scrapers.twitch_Scraper.total_streamers, "Done": Scrapers.twitch_Scraper.done, "search_id": Scrapers.twitch_Scraper.search_id, "download_url": Scrapers.twitch_Scraper.download_url
     # })
-    return JSONResponse(status_code=200, content=active_scrapers[user_id])
+    return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
 class Item(BaseModel):
     name: str
     description: str = None
