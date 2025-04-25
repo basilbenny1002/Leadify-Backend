@@ -461,8 +461,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     logging.info(f"Data saved to test.csv")
     if type(choice_l) == ANY:
         choice_l = ""
-    if type(c) == ANY:
-        c = ""
     if type(min_f) == ANY:
         min_f = 0
     if type(max_f) == ANY:
