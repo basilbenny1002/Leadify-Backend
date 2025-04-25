@@ -15,6 +15,7 @@ import queue
 from supabase import create_client
 import uuid
 import os
+from supabase_file_management import upload_csv 
 from Scrapers.functions import AnyValue, classify
 
 active_scrapers = {}
@@ -452,20 +453,11 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     # Save data to CSV
     # current_process = 4
+    search_id_uuid = str(uuid.uuid4()) 
+    file_name = f"{user_id}/{search_id}.csv"
     df = pd.DataFrame(datas)
-    df.to_csv(path_or_buf="test.csv", index=False)
+    df.to_csv(path_or_buf=file_name, index=False)
     logging.info(f"Data saved to test.csv")
-
-    file_name = f"{user_id}/{str(uuid.uuid4())}.csv"  # you must pass user_id to this function
-
-    with open("test.csv", "rb") as f:
-        res = supabase.storage.from_("results").upload(file_name, f)
-        print(res)
-    if not res.path:
-        raise Exception(f"CSV upload failed: {res}")
-    
-    # Now insert metadata into the table
-    search_id_uuid = str(uuid.uuid4())  # Generate a unique search ID
     filters = {
         "min_followers": min_f,
         "max_followers": max_f,
@@ -473,33 +465,43 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         "min_viewers": min_viewer_c,
         "category": c
     }
-    print(type(min_f), min_f)
-    print(type(max_f), max_f)
-    print(type(choice_l), choice_l)
-    print(type(min_viewer_c), min_viewer_c)
-    print(type(c), c)
+    upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
 
-    filters_json = json.dumps(filters)
-    
-    res =  supabase.table("search_results").insert({
-    "user_id": user_id,
-    "search_id": search_id_uuid,
-    "filters": filters_json,
-    "valid_streamers": len(datas["username"]),
-    "total_streamers": len(streamers),
-    "file_path": file_name
-    }).execute()
+    # file_name = f"{user_id}/{str(uuid.uuid4())}.csv"  # you must pass user_id to this function
 
-    print(res)
+    # with open("test.csv", "rb") as f:
+    #     res = supabase.storage.from_("results").upload(file_name, f)
+    #     print(res)
+    # if not res.path:
+    #     raise Exception(f"CSV upload failed: {res}")
     
-    search_id = search_id_uuid
+    # Now insert metadata into the table
+    
+    # print(type(min_f), min_f)
+    # print(type(max_f), max_f)
+    # print(type(choice_l), choice_l)
+    # print(type(min_viewer_c), min_viewer_c)
+    # print(type(c), c)
+
+    # filters_json = json.dumps(filters)
+    
+    # res =  supabase.table("search_results").insert({
+    # "user_id": user_id,
+    # "search_id": search_id_uuid,
+    # "filters": filters_json,
+    # "valid_streamers": len(datas["username"]),
+    # "total_streamers": len(streamers),
+    # "file_path": file_name
+    # }).execute()
+
+    # print(res)
+    
     download_url = f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
 
 
-    done = True
     update_progress(user_id, values={
-    "Stage": 5,"Done": True, "search_id": search_id,
-      "download_url": download_url
+    "Stage": 5,"Done": True, "search_id": search_id_uuid,
+      "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
     })  
     time.sleep(0.600)
     remove_progress(user_id)
