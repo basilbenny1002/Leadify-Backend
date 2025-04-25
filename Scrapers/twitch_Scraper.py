@@ -17,6 +17,7 @@ import uuid
 import os
 from supabase_file_management import upload_csv 
 from Scrapers.functions import AnyValue, classify
+from Scrapers.functions import ANY
 
 active_scrapers = {}
 data_template = {
@@ -458,6 +459,17 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     df = pd.DataFrame(datas)
     df.to_csv(path_or_buf=file_name, index=False)
     logging.info(f"Data saved to test.csv")
+    if type(choice_l) == ANY:
+        choice_l = ""
+    if type(c) == ANY:
+        c = ""
+    if type(min_f) == ANY:
+        min_f = 0
+    if type(max_f) == ANY:
+        max_f = 100000000000000
+    if type(min_viewer_c) == ANY:
+        min_viewer_c = 0
+
     filters = {
         "min_followers": min_f,
         "max_followers": max_f,
