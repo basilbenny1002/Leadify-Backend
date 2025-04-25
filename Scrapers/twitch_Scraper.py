@@ -454,7 +454,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     # Save data to CSV
     # current_process = 4
     search_id_uuid = str(uuid.uuid4()) 
-    file_name = f"{user_id}/{search_id_uuid}.csv"
+    file_name = f"{user_id}_{search_id_uuid}.csv"
     df = pd.DataFrame(datas)
     df.to_csv(path_or_buf=file_name, index=False)
     logging.info(f"Data saved to test.csv")
