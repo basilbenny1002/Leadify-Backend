@@ -135,7 +135,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
             """
-            if valid_streamers > 19:
+            if valid_streamers > 4:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
             if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
