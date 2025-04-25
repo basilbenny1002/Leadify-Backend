@@ -1,22 +1,47 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import json
+import uuid
 
 
-# Initialize Supabase
-url = "https://rrexykfszwdetlvfmuxd.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyZXh5a2ZzendkZXRsdmZtdXhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0Njc2MjEsImV4cCI6MjA2MDA0MzYyMX0.Dht99OdPBBxyqY-OtT2HFsQR69THOo69PezptRYMk3A"
-supabase: Client = create_client(url, key)
+def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):
+    supabase = create_client(os.getenv("NEXT_PUBLIC_SUPABASE_URL"), os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
+    with open(file_name, "rb") as f:
+        res = supabase.storage.from_("results").upload(file_name, f)
+        print(res)
+    if not res.path:
+        raise Exception(f"CSV upload failed: {res}")
+    filters_json = json.dumps(filters)
+    
+    res =  supabase.table("search_results").insert({
+    "user_id": user_id,
+    "search_id": search_id_uuid,
+    "filters": filters_json,
+    "valid_streamers": valid,
+    "total_streamers": total,
+    "file_path": file_name
+    }).execute()
+    print(res)
+# if __name__ == "__main__":
+#     load_dotenv()
+#     # upload_csv("search_id", "user_id", {"filter1": "value1"}, "file_name.csv", 100, 50)
+#     search_id_uuid = str(uuid.uuid4()) 
+#     file_name = fr"Leadify-Backend/test.csv"
+    
+#     filters = {
+#         "min_followers": 8,
+#         "max_followers": 20,
+#         "language": "en",
+#         "min_viewers": 60,
+#         "category": "4354"
+#     }
+#     upload_csv(search_id_uuid, "5ccb7a11-6135-48fd-80ba-98e8601977c6", filters, file_name, 67, 40)
 
-# Upload file
-bucket_name = "test1"
-user_id = "testuser123"
-file_path = r"C:\Users\basil\Downloads\smootgh brain.png"
-supabase_file_path = f"{user_id}/file.png"
+    # # file_name = f"{user_id}/{str(uuid.uuid4())}.csv"  # you must pass user_id to this function
 
-with open(file_path, "rb") as f:
-    res = supabase.storage.from_(bucket_name).upload(supabase_file_path, f)
-
-# Get public URL
-public_url = supabase.storage.from_(bucket_name).get_public_url(supabase_file_path)
-print("Public URL:", public_url)
+    # with open("test.csv", "rb") as f:
+    #     res = supabase.storage.from_("results").upload(file_name, f)
+    #     print(res)
+    # if not res.path:
+    #     raise Exception(f"CSV upload failed: {res}")
