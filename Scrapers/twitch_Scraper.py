@@ -21,7 +21,7 @@ from Scrapers.functions import AnyValue, classify
 active_scrapers = {}
 data_template = {
     "Stage": 0, "Rate":0 , "ETA": 0, "Streamers":0,
-    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": "", "progress_data":[]
 }
 def update_progress(user_id, values: dict):
@@ -105,7 +105,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
     update_progress(user_id, values={
     "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
-    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": ""
     })  # Update progress with initial values
     # current_process = 1
@@ -125,7 +125,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
         # global elapsed, remaining, rate
         update_progress(user_id, values={
         "Stage": 2, "Rate": 0, "ETA": 0, "Streamers": 0,
-        "Completed": 0, "Percentage": 0, "Total Streamers": len(streams), 
+        "Completed": 0, "Percentage": 0, "Total_Streamers": len(streams), 
         "Done": False, "search_id": "", "download_url": ""
         }) 
         current_process = 2
@@ -134,7 +134,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
             """
-            if valid_streamers > 19:
+            if valid_streamers > 4:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
             if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
@@ -454,7 +454,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     # Save data to CSV
     # current_process = 4
     search_id_uuid = str(uuid.uuid4()) 
-    file_name = f"{user_id}/{search_id}.csv"
+    file_name = f"{user_id}_{search_id_uuid}.csv"
     df = pd.DataFrame(datas)
     df.to_csv(path_or_buf=file_name, index=False)
     logging.info(f"Data saved to test.csv")
