@@ -21,7 +21,7 @@ from Scrapers.functions import AnyValue, classify
 active_scrapers = {}
 data_template = {
     "Stage": 0, "Rate":0 , "ETA": 0, "Streamers":0,
-    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": "", "progress_data":[]
 }
 def update_progress(user_id, values: dict):
@@ -105,7 +105,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
     update_progress(user_id, values={
     "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
-    "Completed": 0, "Percentage": 0, "Total Streamers": 0, 
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": ""
     })  # Update progress with initial values
     # current_process = 1
@@ -125,7 +125,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
         # global elapsed, remaining, rate
         update_progress(user_id, values={
         "Stage": 2, "Rate": 0, "ETA": 0, "Streamers": 0,
-        "Completed": 0, "Percentage": 0, "Total Streamers": len(streams), 
+        "Completed": 0, "Percentage": 0, "Total_Streamers": len(streams), 
         "Done": False, "search_id": "", "download_url": ""
         }) 
         current_process = 2
