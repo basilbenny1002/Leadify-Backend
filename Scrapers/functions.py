@@ -5,8 +5,10 @@ from playwright.sync_api import sync_playwright
 import re
 import time
 import functools
+import os
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
+import cloudscraper
 load_dotenv()
 class AnyValue:
     """
@@ -264,10 +266,11 @@ def scrape_twitch_about(url):
         :param Twitch about url
         :return data: A json file
     """
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', r'Scrapers\JS_components\scraper.js', url],
+            ['node', script_path, url],
             capture_output=True,
             text=True,
             check=True
@@ -323,9 +326,33 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
 
 
-if __name__ == '__main__':
-    t = AnyValue(choice=False)
-    print(t=="w")
-    print(t < 3)
-    print(t > 4)
-    print(t == 2)
+
+def scrape_twitter(url):
+    response = requests.get(url, headers={
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+})
+    print(response)
+    print(response.encoding)
+    # print(response.text.encode('utf-8', errors='ignore').decode('utf-8'))
+    with open("output.html", "w", encoding="utf-8") as f:
+        f.write(response.text)
+    # scraper = cloudscraper.create_scraper()
+    # response = scraper.get(url)
+    # print(response.text)
+
+# if __name__ == '__main__':
+    # t = AnyValue(choice=False)
+    # print(t=="w")
+    # print(t < 3)
+    # print(t > 4)
+    # print(t == 2)
+    #scrape_twitter("https://x.com/phnixhamsta")
+    # try:
+    #     with open("output.html", "r", encoding="utf-8") as f:
+    #         html_text = f.read()
+    #         print(html_text)
+    #         print(extract_emails(html_text))
+    # except Exception as e:
+    #     print(f"something happened {e}")
+    # print(scrape_twitch_about("https://x.com/phnixhamsta")['emails']) # Adam
