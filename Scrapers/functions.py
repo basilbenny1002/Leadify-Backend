@@ -8,7 +8,6 @@ import functools
 import os
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
-import cloudscraper
 load_dotenv()
 class AnyValue:
     """
