@@ -46,7 +46,7 @@ def convert_to_percentage(value: int, max_value: int) -> int:
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
-        if int(min_viewer_c) < int(streams['viewer_count']):
+        if min_viewer_c < streams['viewer_count']:
             return True
         else:
             return False

@@ -18,7 +18,7 @@ def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):
     "user_id": user_id,
     "search_id": search_id_uuid,
     "filters": filters_json,
-    "valid_streamers": valid,
+    "valid_streamers": valid,   
     "total_streamers": total,
     "file_path": file_name
     }).execute()

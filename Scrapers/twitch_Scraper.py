@@ -100,7 +100,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             if valid_streamers > 4:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
-            if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
+            if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
                 streamer_info = {
                     "user_name": streams[i]['user_name'],
                     "viewer_count": streams[i]['viewer_count'],
@@ -381,16 +381,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         for key in datas:
             datas[key].append(result[key])
 
-    # Save
-    # df = pd.DataFrame(all_streamers)
-    # df.to_csv("All streamers list.csv")
-    # df = pd.DataFrame(datas)
-    # df.to_csv(path_or_buf="test.csv", index=False)
-    # print(f"Processed {len(datas['username'])} streamers")
-    
-   
-
-
 
     # Save data to CSV
     # current_process = 4
@@ -417,34 +407,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     }
     upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
 
-    # file_name = f"{user_id}/{str(uuid.uuid4())}.csv"  # you must pass user_id to this function
 
-    # with open("test.csv", "rb") as f:
-    #     res = supabase.storage.from_("results").upload(file_name, f)
-    #     print(res)
-    # if not res.path:
-    #     raise Exception(f"CSV upload failed: {res}")
-    
-    # Now insert metadata into the table
-    
-    # print(type(min_f), min_f)
-    # print(type(max_f), max_f)
-    # print(type(choice_l), choice_l)
-    # print(type(min_viewer_c), min_viewer_c)
-    # print(type(c), c)
-
-    # filters_json = json.dumps(filters)
-    
-    # res =  supabase.table("search_results").insert({
-    # "user_id": user_id,
-    # "search_id": search_id_uuid,
-    # "filters": filters_json,
-    # "valid_streamers": len(datas["username"]),
-    # "total_streamers": len(streamers),
-    # "file_path": file_name
-    # }).execute()
-
-    # print(res)
     
     download_url = f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
 
@@ -453,5 +416,14 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     "Stage": 5,"Done": True, "search_id": search_id_uuid,
       "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
     })  
-    time.sleep(0.600)
+    time.sleep(2)
     remove_progress(user_id)
+    try:
+        os.remove(file_name)
+        print(f"File '{file_name}' deleted successfully.")
+    except FileNotFoundError:
+        print(f"Error: File '{file_name}' not found.")
+    except IsADirectoryError:
+        print(f"Error: '{file_name}' is a directory, not a file.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
