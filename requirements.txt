@@ -8,3 +8,4 @@ pydantic
 fastapi
 psycopg2
 supabase
+fastapi-cli
