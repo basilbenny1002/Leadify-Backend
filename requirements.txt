@@ -1,0 +1,12 @@
+pandas
+tqdm
+python-dotenv
+requests
+playwright
+email-validator
+pydantic
+fastapi
+psycopg2
+supabase
+fastapi-cli
+uvicorn[standard]
