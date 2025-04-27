@@ -5,7 +5,7 @@ import pandas as pd
 from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from Scrapers.functions import convert_to_percentage
+from Scrapers.functions import convert_to_percentage, get_gmails_from_links
 import logging
 import datetime
 import time
@@ -308,27 +308,27 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     result['discord'] = dc_links[0] if dc_links else "Couldn't find discord"
 
     # Process Twitter and additional email scraping
-    if twitter_links:
-        try:
-            twitter_response = scrape_twitter_profile(twitter_links[0])
-            if isinstance(twitter_response, dict) and 'bio' in twitter_response:
-                bio = twitter_response['bio']
-                mail = extract_emails(bio)
-                if mail:
-                    mails_found.update(mail)
-            else:
-                logging.warning(f"Invalid Twitter response for {streamer['user_name']}: {twitter_response}")
-        except Exception as e:
-            logging.error(f"Error scraping Twitter for {streamer['user_name']}: {str(e)}")
+    # if twitter_links:
+    #     try:
+    #         twitter_response = scrape_twitter_profile(twitter_links[0])
+    #         if isinstance(twitter_response, dict) and 'bio' in twitter_response:
+    #             bio = twitter_response['bio']
+    #             mail = extract_emails(bio)
+    #             if mail:
+    #                 mails_found.update(mail)
+    #         else:
+    #             logging.warning(f"Invalid Twitter response for {streamer['user_name']}: {twitter_response}")
+    #     except Exception as e:
+    #         logging.error(f"Error scraping Twitter for {streamer['user_name']}: {str(e)}")
 
-    if yt_links:
-        try:
-            youtube_mails = scrape_youtube(yt_links)
-            if youtube_mails:
-                mails_found.update(youtube_mails)
-        except Exception as e:
-            logging.error(f"Error scraping YouTube for {streamer['user_name']}: {str(e)}")
-
+    # if yt_links:
+    #     try:
+    #         youtube_mails = scrape_youtube(yt_links)
+    #         if youtube_mails:
+    #             mails_found.update(youtube_mails)
+    #     except Exception as e:
+    #         logging.error(f"Error scraping YouTube for {streamer['user_name']}: {str(e)}")
+    mails_found.update(get_gmails_from_links(list(set(social_links))))
     # Process email validation
     if not mails_found:
         result['gmail'] = "Couldn't find a valid gmail"

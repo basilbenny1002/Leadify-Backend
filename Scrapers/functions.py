@@ -5,6 +5,7 @@ from playwright.sync_api import sync_playwright
 import re
 import time
 import functools
+import os
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 load_dotenv()
@@ -323,11 +324,42 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
     except:
         return mails
+def scrape_all(socials: list):
+    import subprocess
+import json
+
+def get_gmails_from_links(links):
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
+
+    # Convert list to JSON string
+    links_json = json.dumps(links)
+
+    # Run the Node.js script
+    result = subprocess.run(
+        ['node', script_path, links_json],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print("Error:", result.stderr)
+        return []
+
+    # Parse the JSON output from Node.js
+    gmails = json.loads(result.stdout)
+    return gmails
+
 
 
 if __name__ == '__main__':
-    t = AnyValue(choice=False)
-    print(t=="w")
-    print(t < 3)
-    print(t > 4)
-    print(t == 2)
+    # t = AnyValue(choice=False)
+    # print(t=="w")
+    # print(t < 3)
+    # print(t > 4)
+    # print(t == 2)
+    links = [
+        "https://x.com/phnixhamsta",
+    ]
+
+    gmails = get_gmails_from_links(links)
+    print("Found gmails:", gmails)
