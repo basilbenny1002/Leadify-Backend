@@ -8,7 +8,7 @@ async function scrapeEmailsFromPages(urls) {
 
     for (const url of urls) {
         try {
-            await page.goto(url, { waitUntil: 'networkidle2' });
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
 
             // Extract emails from page text
             const emailsFromText = await page.evaluate(() => {

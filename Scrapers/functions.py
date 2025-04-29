@@ -351,15 +351,15 @@ def get_gmails_from_links(links):
 
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # t = AnyValue(choice=False)
     # print(t=="w")
     # print(t < 3)
     # print(t > 4)
     # print(t == 2)
-    links = [
-        "https://x.com/phnixhamsta",
-    ]
+    # links = [
+    #     "https://www.twitch.tv/josyfka",
+    # ]
 
-    gmails = get_gmails_from_links(links)
-    print("Found gmails:", gmails)
+    # gmails = scrape_twitch_about("https://www.twitch.tv/josyfka")
+    # print("Found gmails:", gmails)

@@ -264,7 +264,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     # Process social links
-    for social_links in socials:
+    for social_links in set(socials):
         if "youtube" in str(social_links).lower():
             yt_links.add(social_links)
         if "tiktok" in str(social_links).lower():
