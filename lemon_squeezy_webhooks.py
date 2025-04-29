@@ -56,70 +56,58 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
 
     print(data)
 
-    subscription_id = data.get("id")
-    status = data.get("status")
-    renews_at = data.get("renews_at")
-    ends_at = data.get("ends_at")
-    variant_id = data.get("variant_id")
-    starts_at = data.get("starts_at")
+    data = payload.get("data", {})
+    attributes = data.get("attributes", {})
+    subscription_id = data.get("id")  # ID is directly under "data"
+    status = attributes.get("status")
+    renews_at = attributes.get("renews_at")
+    ends_at = attributes.get("ends_at")
+    variant_id = attributes.get("variant_id")
 
-    # Check existing subscription for user
+     # Check existing subscription for user
     existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
 
+    sub_data = {
+        "user_id": user_id,
+        "subscription_id": subscription_id,
+        "status": status,
+        "renews_at": renews_at,
+        "ends_at": ends_at,
+        "plan_id": variant_id,
+    }
+
     if event_name == "subscription_created":
-        sub_data = {
-            "user_id": user_id,
-            "subscription_id": subscription_id,
-            "status": status,
-            "renews_at": renews_at,
-            "ends_at": ends_at,
-            "plan_id": variant_id,
-            "starts_at": starts_at
-        }
-        if existing:
-            if existing.data:
-                supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
+        if existing and existing.data:
+            supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         else:
             supabase.table("subscriptions").insert(sub_data).execute()
 
-        print("subscriptions created by", user_id)
-        
-        # Update user table
-        supabase.table("users").update({
-            "plan_id": variant_id,
-            "subscription_status": status
-        }).eq("id", user_id).execute()  
-
+        print("Subscription created by", user_id)
 
     elif event_name == "subscription_updated":
-        supabase.table("subscriptions").update({
-            "status": status,
-            "renews_at": renews_at,
-            "ends_at": ends_at,
-            "plan_id": variant_id
-        }).eq("user_id", user_id).execute()
+        supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
 
-        supabase.table("users").update({
-            "plan_id": variant_id,
-            "subscription_status": status
-        }).eq("id", user_id).execute()
+        print("Subscription updated for", user_id)
 
     elif event_name in ["subscription_cancelled", "subscription_expired"]:
         supabase.table("subscriptions").update({
             "status": "cancelled",
             "ends_at": ends_at
         }).eq("user_id", user_id).execute()
-        supabase.table("users").update({
-            "subscription_status": "cancelled"
-        }).eq("id", user_id).execute()
+
+        print("Subscription cancelled/expired for", user_id)
 
     elif event_name == "subscription_resumed":
         supabase.table("subscriptions").update({
             "status": "active",
             "renews_at": renews_at,
-            "ends_at": None
+            "ends_at": ends_at
         }).eq("user_id", user_id).execute()
 
-        supabase.table("users").update({
-            "subscription_status": "active"
-        }).eq("id", user_id).execute()
+        print("Subscription resumed for", user_id)
+
+    # In all cases, update the user table to match
+    supabase.table("users").update({
+        "plan_id": variant_id,
+        "subscription_status": status if status else "cancelled"
+    }).eq("id", user_id).execute()
