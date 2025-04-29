@@ -50,13 +50,18 @@ async def handle_lemon_webhook(
     return {"status": "success"}
 
 async def process_subscription_event(event_name: str, payload: dict, user_id: str):
+    print(payload)
+    
     data = payload.get("data", {}).get("attributes", {})
+
+    print(data)
 
     subscription_id = data.get("id")
     status = data.get("status")
     renews_at = data.get("renews_at")
     ends_at = data.get("ends_at")
     variant_id = data.get("variant_id")
+    starts_at = data.get("starts_at")
 
     # Check existing subscription for user
     existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
@@ -68,7 +73,8 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             "status": status,
             "renews_at": renews_at,
             "ends_at": ends_at,
-            "plan_id": variant_id
+            "plan_id": variant_id,
+            "starts_at": starts_at
         }
         if existing:
             if existing.data:
