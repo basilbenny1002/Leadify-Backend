@@ -59,7 +59,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     variant_id = data.get("variant_id")
 
     # Check existing subscription for user
-    existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).single().execute()
+    existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
 
     if event_name == "subscription_created":
         sub_data = {
