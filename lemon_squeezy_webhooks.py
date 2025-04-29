@@ -26,16 +26,13 @@ def verify_signature(raw_body: bytes, signature: str) -> bool:
 @router.post("/webhooks/lemonsqueezy")
 async def handle_lemon_webhook(
     request: Request,
-    x_signature: str = Header(None)  # Capture the signature header
+    x_signature: str = Header(None)
 ):
-    # Read raw request body for signature verification
     raw_body = await request.body()
 
-    # Verify signature
     if not x_signature or not verify_signature(raw_body, x_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
-    # Parse JSON payload after verifying signature
     payload = await request.json()
     event_name = payload.get("meta", {}).get("event_name")
     custom_data = payload.get("meta", {}).get("custom_data", {})
@@ -44,27 +41,26 @@ async def handle_lemon_webhook(
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user ID")
 
-    # Process subscription event
     await process_subscription_event(event_name, payload, user_id)
-
     return {"status": "success"}
 
 async def process_subscription_event(event_name: str, payload: dict, user_id: str):
-    print(payload)
-    
-    data = payload.get("data", {}).get("attributes", {})
-
-    print(data)
-
     data = payload.get("data", {})
     attributes = data.get("attributes", {})
-    subscription_id = data.get("id")  # ID is directly under "data"
+    subscription_id = data.get("id")
     status = attributes.get("status")
     renews_at = attributes.get("renews_at")
     ends_at = attributes.get("ends_at")
     variant_id = attributes.get("variant_id")
+    variant_name = attributes.get("variant_name")
+    product_id = attributes.get("product_id")
+    product_name = attributes.get("product_name")
+    billing_anchor = attributes.get("billing_anchor")
+    created_at = attributes.get("created_at")
+    card_brand = attributes.get("card_brand")
+    card_last_four = attributes.get("card_last_four")
 
-     # Check existing subscription for user
+    # Check for existing subscription
     existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
 
     sub_data = {
@@ -74,6 +70,13 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         "renews_at": renews_at,
         "ends_at": ends_at,
         "plan_id": variant_id,
+        "plan_name": variant_name,
+        "product_id": product_id,
+        "product_name": product_name,
+        "billing_anchor": billing_anchor,
+        "created_at": created_at,
+        "card_brand": card_brand,
+        "card_last_four": card_last_four
     }
 
     if event_name == "subscription_created":
@@ -81,12 +84,10 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         else:
             supabase.table("subscriptions").insert(sub_data).execute()
-
         print("Subscription created by", user_id)
 
     elif event_name == "subscription_updated":
         supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
-
         print("Subscription updated for", user_id)
 
     elif event_name in ["subscription_cancelled", "subscription_expired"]:
@@ -94,7 +95,6 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             "status": "cancelled",
             "ends_at": ends_at
         }).eq("user_id", user_id).execute()
-
         print("Subscription cancelled/expired for", user_id)
 
     elif event_name == "subscription_resumed":
@@ -103,11 +103,13 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             "renews_at": renews_at,
             "ends_at": ends_at
         }).eq("user_id", user_id).execute()
-
         print("Subscription resumed for", user_id)
 
-    # In all cases, update the user table to match
+    # Always update users table
     supabase.table("users").update({
         "plan_id": variant_id,
-        "subscription_status": status if status else "cancelled"
+        "plan_name": variant_name,
+        "subscription_id": subscription_id,
+        "subscription_status": status if status else "cancelled",
+        "renews_at": renews_at
     }).eq("id", user_id).execute()
