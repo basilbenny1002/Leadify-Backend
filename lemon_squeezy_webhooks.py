@@ -70,8 +70,9 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             "ends_at": ends_at,
             "plan_id": variant_id
         }
-        if existing.data:
-            supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
+        if existing:
+            if existing.data:
+                supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         else:
             supabase.table("subscriptions").insert(sub_data).execute()
 
