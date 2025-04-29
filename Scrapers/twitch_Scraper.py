@@ -237,6 +237,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         socials = response.get('links', [])
         mail = response.get('emails', [])
         mails_found.update(mail)
+        print(f"Found mails: {mails_found}")    
     except Exception as e:
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
         with lock:
@@ -329,6 +330,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     #     except Exception as e:
     #         logging.error(f"Error scraping YouTube for {streamer['user_name']}: {str(e)}")
     mails_found.update(get_gmails_from_links(list(set(social_links))))
+    print(f"Found mails: {mails_found}")
     # Process email validation
     if not mails_found:
         result['gmail'] = "Couldn't find a valid gmail"
@@ -418,6 +420,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     datas = {
         'username': [],
+        'channel url':[],
         'followers': [],
         'viewer_count': [],
         'language': [],
