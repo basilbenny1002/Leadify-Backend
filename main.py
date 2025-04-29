@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
 import Scrapers.twitch_Scraper
 from Scrapers.twitch_Scraper import active_scrapers
+from lemon_squeezy_webhooks import router as webhook_router  # <-- 👈 Import the router here
 
 ANYT = AnyValue(choice=True)
 
@@ -18,6 +19,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"],
     allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+
+app.include_router(webhook_router) 
 
 @app.get("/")
 def read_root():
