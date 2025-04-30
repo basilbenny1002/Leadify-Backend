@@ -329,7 +329,9 @@ def scrape_all(socials: list):
 import json
 
 def get_gmails_from_links(links):
+    print("Links to scrape:", links, flush=True)
     script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
+    print("done making script", flush=True)
 
     # Convert list to JSON string
     links_json = json.dumps(links)
@@ -338,20 +340,23 @@ def get_gmails_from_links(links):
     result = subprocess.run(
         ['node', script_path, links_json],
         capture_output=True,
-        text=True
+        text=True, stdout=subprocess.PIPE
     )
-
+    print("done execution calling script", flush=True)
+    print(result.stdout, flush=True)
+    print("done getting result", flush=True)
     if result.returncode != 0:
         print("Error:", result.stderr)
         return []
 
     # Parse the JSON output from Node.js
     gmails = json.loads(result.stdout)
-    return gmails
+    
+    return []
 
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
     # t = AnyValue(choice=False)
     # print(t=="w")
     # print(t < 3)
@@ -361,5 +366,5 @@ def get_gmails_from_links(links):
     #     "https://www.twitch.tv/josyfka",
     # ]
 
-    # gmails = scrape_twitch_about("https://www.twitch.tv/josyfka")
-    # print("Found gmails:", gmails)
+    gmails = scrape_twitch_about("https://www.twitch.tv/josyfka/about")
+    print("Found gmails:", gmails)
