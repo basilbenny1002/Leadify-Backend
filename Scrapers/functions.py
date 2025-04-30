@@ -273,7 +273,7 @@ def scrape_twitch_about(url):
             ['node', r'Scrapers/JS_components/scraper.js', url],
             capture_output=True,
             text=True,
-            check=True
+            check=True, stdout=subprocess.PIPE
         )
 
         # Parse the JSON output from the Node.js script
@@ -281,7 +281,7 @@ def scrape_twitch_about(url):
         # print(result.stdout)
         data = json.loads(result.stdout)
         #print(data)
-        return data
+        return result.stdout
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e.stderr}")
@@ -343,6 +343,7 @@ def get_gmails_from_links(links):
         text=True, stdout=subprocess.PIPE
     )
     print("done execution calling script", flush=True)
+    return result.stdout
     print(result.stdout, flush=True)
     print("done getting result", flush=True)
     if result.returncode != 0:
