@@ -222,7 +222,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     # Scrape Twitch about section with error handling
     try:
         response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
-        print(f"Twitter Response: {response}")
+        print(f"Twitter Response: {response}",flush=True)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -330,7 +330,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     #             mails_found.update(youtube_mails)
     #     except Exception as e:
     #         logging.error(f"Error scraping YouTube for {streamer['user_name']}: {str(e)}")
-    print(f"Found mails: {get_gmails_from_links(list(set(social_links)))}")
+    print(f"Found mails: {get_gmails_from_links(list(set(social_links)))}", flush=True)
     mails_found.update(get_gmails_from_links(list(set(social_links))))
     print(f"Found mails: {mails_found}")
     # Process email validation
