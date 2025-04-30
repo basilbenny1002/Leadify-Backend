@@ -177,6 +177,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
 def process_streamer(streamer, index, user_id, streamers, results_queue):
     # global results_queue
+    print(f"Inside process streamer for {streamer['user_name']}", flush=True)
     current_process = 3
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -392,13 +393,21 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
+            print("Creating thread for streamer:", streamers[i]['user_name'], flush=True)
             thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
+            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
+            print("Gonna wait for 3 seocnds now", flush=True)
+            time.sleep(3)  # Optional: Add a small delay to avoid overwhelming the system
+            print("Waited for 3 seconds", flush=True)
         except Exception as e:
+            
             print(f"Error occurred{e}:", flush=True)
-        if len(threads) >= 2:  #number of threads
+        else:
+            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
+        if len(threads) >= 1:  #number of threads
             for t in threads:
                 t.join()
             threads = []
