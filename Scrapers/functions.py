@@ -270,7 +270,7 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', "/JS_components/scraper.js", url],
+            ['node', r'Scrapers/JS_components/scraper.js', url],
             capture_output=True,
             text=True,
             check=True
