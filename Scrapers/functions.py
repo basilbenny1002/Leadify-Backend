@@ -271,7 +271,7 @@ def scrape_twitch_about(url):
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
             ['node', r'Scrapers/JS_components/scraper.js', url],
-            capture_output=True,
+            
             text=True,
             check=True, stdout=subprocess.PIPE
         )
@@ -339,7 +339,7 @@ def get_gmails_from_links(links):
     # Run the Node.js script
     result = subprocess.run(
         ['node', script_path, links_json],
-        capture_output=True,
+        
         text=True, stdout=subprocess.PIPE
     )
     print("done execution calling script", flush=True)
