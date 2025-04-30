@@ -87,9 +87,9 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             supabase.table("subscriptions").insert(sub_data).execute()
         print("Subscription created by", user_id)
 
-    # elif event_name == "subscription_updated":
-    #     supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
-    #     print("Subscription updated for", user_id)
+    elif event_name == "subscription_updated":
+        supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
+        print("Subscription updated for", user_id)
 
     # elif event_name in ["subscription_cancelled", "subscription_expired"]:
     #     supabase.table("subscriptions").update({
@@ -176,4 +176,4 @@ async def update_subscription(request: Request):
 
 def calculate_next_billing_date():
     # You can implement logic for the next billing date. For example, for monthly plans:
-    return datetime.utcnow().replace(hour=0, minute=0, second=0) + timedelta(days=30)
+    return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)

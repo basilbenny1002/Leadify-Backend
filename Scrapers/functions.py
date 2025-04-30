@@ -270,7 +270,7 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', script_path, url],
+            ['node', "/JS_components/scraper.js", url],
             capture_output=True,
             text=True,
             check=True
@@ -356,7 +356,7 @@ def get_gmails_from_links(links):
 
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # t = AnyValue(choice=False)
     # print(t=="w")
     # print(t < 3)
@@ -366,5 +366,5 @@ if __name__ == '__main__':
     #     "https://www.twitch.tv/josyfka",
     # ]
 
-    gmails = scrape_twitch_about("https://www.twitch.tv/josyfka/about")
-    print("Found gmails:", gmails)
+    # gmails = scrape_twitch_about("https://www.twitch.tv/josyfka")
+    # print("Found gmails:", gmails)
