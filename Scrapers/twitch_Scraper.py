@@ -214,6 +214,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             "tiktok": "Couldn't find a tiktok account",
             "linkedin": "Couldn't find a linkedin account"
         }
+        print(f"Result first try block: {result}", flush=True)
         #results_queue.put(result)
     except Exception as e:
         logging.error(f"Error processing streamer {streamer['user_name']}: {str(e)}")
@@ -222,6 +223,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
+        print(f"Scraping Twitch about for {streamer['user_name']}, second try block", flush=True)
         response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
         print(f"Twitter Response: {response}",flush=True)
         if not isinstance(response, dict):
@@ -241,6 +243,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         mails_found.update(mail)
         print(f"Found mails: {mails_found}")    
     except Exception as e:
+        print(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}, second try block's exception ", flush=True)
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
         with lock:
             end_time = time.time()
@@ -254,6 +257,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     if not socials:
+        print(f"Socials not found for {streamer['user_name']}, third try block", flush=True)
         result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else "Couldn't find a valid mail"
         with lock:
             end_time = time.time()
