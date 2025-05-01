@@ -26,9 +26,7 @@ RUN playwright install
 
 # Build and install JS components
 WORKDIR /app/Scrapers/JS_components
-RUN chmod +x ./render-build.sh \
- && ./render-build.sh \
- && npm install \
+RUN npm install \
  && npm fund \
  && PUPPETEER_SKIP_DOWNLOAD=false npm install \
  && npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
