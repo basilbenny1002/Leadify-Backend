@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
 const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -18,8 +19,6 @@ async function scrapeTwitchAbout(url) {
     });
 
     const page = await browser.newPage();
-
-    // Random user-agent
     const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
     await page.setUserAgent(randomUserAgent);
 
@@ -28,6 +27,8 @@ async function scrapeTwitchAbout(url) {
             waitUntil: 'domcontentloaded',
             timeout: 60000
         });
+
+        const pageHTML = await page.content();
 
         const links = await page.evaluate(() => {
             return Array.from(document.querySelectorAll('a[href]'))
@@ -49,15 +50,14 @@ async function scrapeTwitchAbout(url) {
             return text.match(emailRegex) || [];
         });
 
-        const pageHTML = await page.content();
         const emailsFromHTML = pageHTML.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
         const emails = [...new Set([...emailsFromText, ...emailsFromHTML])];
 
-        return { links, emails };
+        return { links, emails, html: pageHTML };
 
     } catch (error) {
         console.error('Navigation or scraping failed:', error);
-        return { links: [], emails: [], error: error.message };
+        return { links: [], emails: [], html: '', error: error.message };
     } finally {
         await browser.close();
     }

@@ -225,8 +225,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     try:
         print(f"Scraping Twitch about for {streamer['user_name']}, second try block", flush=True)
         response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
-        print(response, flush=True)
-        print(f"Twitter Response: {response}",flush=True)
+        # print(response, flush=True)
+        print(f"Twitter Response for {streamer['user_name']}: {response}",flush=True)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
