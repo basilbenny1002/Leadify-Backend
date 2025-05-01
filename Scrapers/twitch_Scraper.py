@@ -223,6 +223,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     try:
         print(f"Scraping Twitch about for {streamer['user_name']}", flush=True)
         try:
+            
             response = scrape_emails_and_socials(f"https://www.twitch.tv/{streamer['user_name']}/about")
             print(f"paywright first scrape response: {response}")
         except Exception as e:

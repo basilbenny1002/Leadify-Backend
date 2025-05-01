@@ -169,6 +169,8 @@ def scrape_emails_and_socials(twitch_url: str) -> dict:
     :param twitch_url: str) -> dict:: URL of the Twitter profile
     :return: Dictionary with 'email' and 'socials' keys
     """
+    print(f"Scraping {twitch_url} for emails and socials...")
+    
     result = {"email": [], "socials": []}
     try:
         with sync_playwright() as p:
@@ -203,7 +205,7 @@ def scrape_emails_and_socials(twitch_url: str) -> dict:
             result["socials"] = list(set(social_links))
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", flush=True)
 
     return result
 
