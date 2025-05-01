@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import pandas as pd
-from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
+from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id, scrape_emails_and_socials
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from Scrapers.functions import convert_to_percentage
@@ -221,7 +221,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
+        response = scrape_emails_and_socials(f"https://www.twitch.tv/{streamer['user_name']}/about")
+        print(response)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -234,7 +235,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             
             results_queue.put(result)
             return
-        socials = response.get('links', [])
+        socials = response.get('socials', [])
         mail = response.get('emails', [])
         mails_found.update(mail)
     except Exception as e:

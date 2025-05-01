@@ -159,6 +159,55 @@ def scrape_twitter_profile(twitter_profile_url):
                 "following": following
             }
 
+import re
+from playwright.sync_api import sync_playwright
+
+def scrape_emails_and_socials(twitch_url: str) -> dict:
+    """
+    Scrapes a Twitter profile for Gmail addresses and social media links.
+    
+    :param twitch_url: str) -> dict:: URL of the Twitter profile
+    :return: Dictionary with 'email' and 'socials' keys
+    """
+    result = {"email": [], "socials": []}
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(twitch_url, timeout=15000)
+            page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
+
+            # Get the full page content
+            content = page.content()
+            email_pattern = r'\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b'
+            # Regex for Gmail addresses
+            emails = re.findall(email_pattern, content, re.IGNORECASE)
+
+            # Regex for common social links
+            social_patterns = [
+                r'https?://(?:www\.)?linkedin\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?instagram\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?facebook\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?youtube\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?tiktok\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?twitter\.com/[^\s"\'<>]+',
+                r'https?://(?:www\.)?x\.com/[^\s"\'<>]+'
+            ]
+            social_links = []
+            for pattern in social_patterns:
+                social_links += re.findall(pattern, content, re.IGNORECASE)
+
+            browser.close()
+            
+            result["email"] = list(set(emails))
+            result["socials"] = list(set(social_links))
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return result
+
+
 @time_it
 def extract_emails(text: str) -> list[str]:
     """
