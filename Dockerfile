@@ -3,6 +3,12 @@ FROM mcr.microsoft.com/playwright/python:v1.50.0-noble
 # Set working directory
 WORKDIR /app
 
+# 1) Install OS-level build dependencies for psycopg2
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libpq-dev python3-dev gcc \
+ && rm -rf /var/lib/apt/lists/*
+
 # Copy all files
 COPY . .
 
