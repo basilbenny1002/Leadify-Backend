@@ -400,7 +400,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
             all_threads.append(thread)
         except Exception as e:
             print(f"Error occurred{e}:", flush=True)
-        if len(threads) >= 0:  #number of threads
+        if len(threads) > 0:  #number of threads
             for t in threads:
                 t.join()
             threads = []
