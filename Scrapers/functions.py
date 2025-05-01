@@ -178,7 +178,11 @@ def scrape_emails_and_socials(twitch_url: str) -> dict:
             print(f"Browser launched{p}", flush=True)
             page = browser.new_page()
             print("GONNA CALL THE URL", flush=True)
-            page.goto(twitch_url, timeout=15000)
+            try:
+                page.goto(twitch_url, timeout=15000)
+                print(f"Page loaded successfully.", flush=True)
+            except Exception as e:
+                print(f"Something happend {e}", flush=True)
             print("GOT THE URL", flush=True)
             page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
             print("WAITED FOR SELECTOR", flush=True)
