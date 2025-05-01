@@ -270,10 +270,10 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', script_path, url],
-            capture_output=True,
+            ['node', r'Scrapers/JS_components/scraper.js', url],
+            
             text=True,
-            check=True
+            check=True, stdout=subprocess.PIPE
         )
 
         # Parse the JSON output from the Node.js script
@@ -281,9 +281,10 @@ def scrape_twitch_about(url):
         # print(result.stdout)
         data = json.loads(result.stdout)
         #print(data)
-        return data
+        return result.stdout
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
+        return e
         print(f"An error occurred: {e.stderr}")
         return {"links":"", "email":""}
 
@@ -329,7 +330,9 @@ def scrape_all(socials: list):
 import json
 
 def get_gmails_from_links(links):
+    print("Links to scrape:", links, flush=True)
     script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
+    print("done making script", flush=True)
 
     # Convert list to JSON string
     links_json = json.dumps(links)
@@ -337,17 +340,21 @@ def get_gmails_from_links(links):
     # Run the Node.js script
     result = subprocess.run(
         ['node', script_path, links_json],
-        capture_output=True,
-        text=True
+        
+        text=True, stdout=subprocess.PIPE
     )
-
+    print("done execution calling script", flush=True)
+    return result.stdout
+    print(result.stdout, flush=True)
+    print("done getting result", flush=True)
     if result.returncode != 0:
         print("Error:", result.stderr)
         return []
 
     # Parse the JSON output from Node.js
     gmails = json.loads(result.stdout)
-    return gmails
+    
+    return []
 
 
 
