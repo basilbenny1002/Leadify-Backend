@@ -34,7 +34,6 @@ async function scrapeTwitchAbout(url) {
     }
 
     // Optional: wait a bit more for any JS to finish
-    await page.waitForTimeout(3000);
 
     let links = [];
     let emailsFromText = [];
