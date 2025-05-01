@@ -108,7 +108,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
 
     # Always update users table
     supabase.table("users").update({
-        "subscription_status": True if status else False,
+        "subscription_status": status == "active",
     }).eq("id", user_id).execute()
 
 
