@@ -3,6 +3,7 @@ from fastapi import APIRouter, Request, Header, HTTPException
 import hmac
 import hashlib
 import os
+import httpx
 from supabase import create_client, Client
 
 router = APIRouter()
@@ -11,7 +12,7 @@ router = APIRouter()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 LEMON_SECRET = os.getenv("LEMON_WEBHOOK_SECRET")
-
+LEMON_API_KEY = os.getenv("LEMON_SQUEEZY_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def verify_signature(raw_body: bytes, signature: str) -> bool:
@@ -113,66 +114,48 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
 
 
 @router.post("/update-subscription")
-async def update_subscription(request: Request):
-    # Get the user ID and the new plan ID from the request
-    body = await request.json()
-    user_id = body.get("user_id")
-    new_plan_id = body.get("new_plan_id")
+async def update_subscription(payload: dict):
+    user_id = payload.get("user_id")
+    new_variant_id = payload.get("variant_id")
+    if not user_id or not new_variant_id:
+        raise HTTPException(400, "Missing user_id or variant_id")
 
-    # Check if the user has an active subscription
-    user_subscription = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").maybe_single().execute()
+    # fetch the existing subscription_id for this user
+    resp = supabase.table("subscriptions") \
+        .select("subscription_id") \
+        .eq("user_id", user_id) \
+        .eq("status", "active") \
+        .maybe_single() \
+        .execute()
+    sub = resp.data
+    if not sub:
+        raise HTTPException(400, "No active subscription found")
 
-    if not user_subscription or not user_subscription.data:
-        raise HTTPException(status_code=400, detail="No active subscription found for this user.")
+    subscription_id = sub["subscription_id"]
 
-    current_subscription = user_subscription.data
-    current_plan_id = current_subscription["plan_id"]
-
-    # If the current plan is the same as the new plan, return an error (to prevent unnecessary re-activation)
-    if current_plan_id == new_plan_id:
-        raise HTTPException(status_code=400, detail="You already have this plan.")
-
-    # Now we need to decide whether it's an upgrade or downgrade
-    if new_plan_id != "free":
-        # Cancel the current subscription (keep the current_period_end and status, etc., depending on the situation)
-        supabase.table("subscriptions").update({
-            "status": "cancelled",
-            "ends_at": datetime.utcnow()  # You might need to adjust this if you want the cancellation to take effect in the future
-        }).eq("user_id", user_id).eq("status", "active").execute()
-
-        # Now create a new subscription with the new plan
-        new_subscription_data = {
-            "user_id": user_id,
-            "plan_id": new_plan_id,
-            "status": "active",  # Set new status to active
-            "current_period_start": datetime.utcnow(),
-            "current_period_end": calculate_next_billing_date(),  # Assuming you want to calculate the next billing date
-            "is_active": True
+    # PATCH to Lemon Squeezy to change plan
+    url = f"https://api.lemonsqueezy.com/v1/subscriptions/{subscription_id}"
+    body = {
+      "data": {
+        "type": "subscriptions",
+        "id": subscription_id,
+        "attributes": {
+          "variant_id": new_variant_id,
+          "invoice_immediately": True
         }
+      }
+    }
+    headers = {
+      "Authorization": f"Bearer {LEMON_API_KEY}",
+      "Accept": "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json"
+    }
+    async with httpx.AsyncClient() as client:
+        r = await client.patch(url, json=body, headers=headers)
+        r.raise_for_status()
 
-        supabase.table("subscriptions").insert([new_subscription_data]).execute()
-        return {"message": "Subscription updated successfully."}
-    
-    else:
-        # If the user wants to downgrade to the free plan
-        # Cancel the current active subscription
-        supabase.table("subscriptions").update({
-            "status": "cancelled",
-            "ends_at": datetime.utcnow()
-        }).eq("user_id", user_id).eq("status", "active").execute()
-
-        # Set the user to the free plan (no need to handle payments for the free plan)
-        free_subscription_data = {
-            "user_id": user_id,
-            "plan_id": "free",
-            "status": "free",  # Mark it as free
-            "current_period_start": datetime.utcnow(),
-            "current_period_end": None,  # No end date for free plan
-            "is_active": True
-        }
-
-        supabase.table("subscriptions").insert([free_subscription_data]).execute()
-        return {"message": "User downgraded to the free plan."}
+    # return the webhook will update your DB automatically
+    return {"message": "Subscription change initiated"}
 
 def calculate_next_billing_date():
     # You can implement logic for the next billing date. For example, for monthly plans:
