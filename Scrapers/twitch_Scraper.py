@@ -221,8 +221,12 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = scrape_emails_and_socials(f"https://www.twitch.tv/{streamer['user_name']}/about")
-        print(response)
+        print(f"Scraping Twitch about for {streamer['user_name']}", flush=True)
+        try:
+            response = scrape_emails_and_socials(f"https://www.twitch.tv/{streamer['user_name']}/about")
+            print(f"paywright first scrape response: {response}")
+        except Exception as e:
+            print(f"Error in playwright scrape for {streamer['user_name']}: {str(e)}")
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
