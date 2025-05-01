@@ -5,9 +5,10 @@ const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    ];
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
+];
 
-// Enable stealth mode
 puppeteer.use(StealthPlugin());
 
 async function scrapeTwitchAbout(url) {
@@ -20,16 +21,27 @@ async function scrapeTwitchAbout(url) {
     const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
     await page.setUserAgent(randomUserAgent);
 
+    let gotoFailed = false;
+
     try {
         await page.goto(url, {
             waitUntil: 'networkidle2',
-            timeout: 60000
+            timeout: 120000 // 2 minutes
         });
-        await page.waitForTimeout(3000); // Wait for 3 seconds to ensure the page is fully loaded        
+    } catch (err) {
+        console.warn('Page load timeout — continuing with what we have...');
+        gotoFailed = true;
+    }
 
-        const pageHTML = await page.content();
+    // Optional: wait a bit more for any JS to finish
+    await page.waitForTimeout(3000);
 
-        const links = await page.evaluate(() => {
+    let links = [];
+    let emailsFromText = [];
+    let emailsFromHTML = [];
+
+    try {
+        links = await page.evaluate(() => {
             return Array.from(document.querySelectorAll('a[href]'))
                 .map(a => a.href)
                 .filter(link =>
@@ -43,26 +55,26 @@ async function scrapeTwitchAbout(url) {
                 );
         });
 
-        const emailsFromText = await page.evaluate(() => {
+        emailsFromText = await page.evaluate(() => {
             const text = document.body.innerText;
             const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
             return text.match(emailRegex) || [];
         });
 
-        const emailsFromHTML = pageHTML.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-        const emails = [...new Set([...emailsFromText, ...emailsFromHTML])];
+        const pageHTML = await page.content();
+        emailsFromHTML = pageHTML.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
 
-        return { links, emails, html: pageHTML };
-
-    } catch (error) {
-        console.error('Navigation or scraping failed:', error);
-        return { links: [], emails: [], html: '', error: error.message };
-    } finally {
-        await browser.close();
+    } catch (err) {
+        console.error('Error extracting data:', err);
     }
+
+    const emails = [...new Set([...emailsFromText, ...emailsFromHTML])];
+    await browser.close();
+
+    return { links, emails, timeout: gotoFailed };
 }
 
-// Run the function if URL is passed as argument
+// Run if URL is passed
 const url = process.argv[2];
 if (!url) {
     console.error('Please provide a URL as an argument.');
