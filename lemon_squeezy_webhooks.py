@@ -91,20 +91,20 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         print("Subscription updated for", user_id)
 
-    # elif event_name in ["subscription_cancelled", "subscription_expired"]:
-    #     supabase.table("subscriptions").update({
-    #         "status": "cancelled",
-    #         "ends_at": ends_at
-    #     }).eq("user_id", user_id).execute()
-    #     print("Subscription cancelled/expired for", user_id)
+    elif event_name in ["subscription_cancelled", "subscription_expired"]:
+        supabase.table("subscriptions").update({
+            "status": "cancelled",
+            "ends_at": ends_at
+        }).eq("user_id", user_id).execute()
+        print("Subscription cancelled/expired for", user_id)
 
-    # elif event_name == "subscription_resumed":
-    #     supabase.table("subscriptions").update({
-    #         "status": "active",
-    #         "renews_at": renews_at,
-    #         "ends_at": ends_at
-    #     }).eq("user_id", user_id).execute()
-    #     print("Subscription resumed for", user_id)
+    elif event_name == "subscription_resumed":
+        supabase.table("subscriptions").update({
+            "status": "active",
+            "renews_at": renews_at,
+            "ends_at": ends_at
+        }).eq("user_id", user_id).execute()
+        print("Subscription resumed for", user_id)
 
     # Always update users table
     supabase.table("users").update({
