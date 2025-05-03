@@ -11,7 +11,7 @@ RUN apt-get update \
 
 # 2) Create & activate venv so pip can install freely
 RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH" 
 
 # 3) Install Python deps
 COPY requirements.txt .
