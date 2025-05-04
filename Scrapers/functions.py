@@ -2,6 +2,9 @@ import requests
 import subprocess, json
 from typing import Union
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright
+
+import random
 import re
 import time
 import functools
@@ -105,41 +108,41 @@ def scrape_twitter_profile(twitter_profile_url):
     :return:
     Dictionary containing the profile info
     """
-    # Launch a headless browser with Playwright
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"
+    ]
+
+    random_user_agent = random.choice(user_agents)
+
     try:
         with sync_playwright() as p:
-            # Start Chromium in headless mode (set headless=False to see the browser)
-            browser = p.chromium.launch(headless=True)
-            # Create a new page
-            page = browser.new_page()
-            # Navigate to the Twitter profile URL
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+            context = browser.new_context(user_agent=random_user_agent)
+            page = context.new_page()
             page.goto(f'{twitter_profile_url}')
-            # Wait for the profile's display name element to load (up to 10 seconds)
             page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
 
-            # Extract display name
             display_name_element = page.query_selector('[data-testid="UserName"]')
             display_name = display_name_element.text_content().strip() if display_name_element else "Not found"
 
-            # Extract bio
             bio_element = page.query_selector('[data-testid="UserDescription"]')
             bio = bio_element.text_content().strip() if bio_element else "No bio"
 
-            # Extract join date (looks for a span containing "Joined")
             join_date_element = page.query_selector('span:has-text("Joined")')
             join_date = join_date_element.text_content().strip() if join_date_element else "Not found"
 
-            # Extract followers count from the aria-label attribute
             followers_element = page.query_selector('[aria-label*="Followers"][role="link"]')
             followers = (followers_element.get_attribute('aria-label').split()[0]
                          if followers_element else "Not found")
 
-            # Extract following count from the aria-label attribute
             following_element = page.query_selector('[aria-label*="Following"][role="link"]')
             following = (following_element.get_attribute('aria-label').split()[0]
                          if following_element else "Not found")
 
-            # Close the browser
             browser.close()
     except:
         return {
@@ -150,15 +153,13 @@ def scrape_twitter_profile(twitter_profile_url):
             "following": ""
         }
     else:
-            # Return the scraped data as a dictionary
-            return {
-                "display_name": display_name,
-                "bio": bio,
-                "join_date": join_date,
-                "followers": followers,
-                "following": following
-            }
-
+        return {
+            "display_name": display_name,
+            "bio": bio,
+            "join_date": join_date,
+            "followers": followers,
+            "following": following
+        }
 @time_it
 def extract_emails(text: str) -> list[str]:
     """

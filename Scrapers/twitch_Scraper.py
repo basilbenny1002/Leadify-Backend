@@ -135,7 +135,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
             """
-            if valid_streamers > 4:
+            if valid_streamers > 10:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
             if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
@@ -394,7 +394,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
             all_threads.append(thread)
         except Exception as e:
             print(f"Error occurred{e}:", flush=True)
-        if len(threads) >= 4:  #number of threads
+        if len(threads) > 0:  #number of threads
             for t in threads:
                 t.join()
             threads = []
