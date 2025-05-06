@@ -4,6 +4,7 @@ from typing import Union
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import sync_playwright
 
+import socket
 import random
 import re
 import time
@@ -121,7 +122,7 @@ def scrape_twitter_profile(twitter_profile_url):
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
-            context = browser.new_context(user_agent=random_user_agent)
+            context = browser.new_context(user_agent=random_user_agent,proxy={"server": str(get_working_proxy())})
             page = context.new_page()
             page.goto(f'{twitter_profile_url}')
             page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
@@ -324,11 +325,30 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
     except:
         return mails
+def is_proxy_alive(ip, port, timeout=3):
+    """
+    Check if a proxy server at given IP and port is alive.
 
-
+    Returns True if reachable, False otherwise.
+    """
+    try:
+        with socket.create_connection((ip, port), timeout=timeout):
+            return True
+    except (socket.timeout, socket.error):
+        return False
+    
+def get_working_proxy():
+    url = "https://api.proxyscrape.com/v2/?request=getproxies&proxytype=https&timeout=10000&country=all"
+    valid_ports = [80, 8080, 3128, 1080, 8888, 443]
+    response = requests.get(url)
+    proxies = response.text.split("\r\n")
+    for proxy in proxies:
+        if 'https' not in proxy:
+            ip, port = proxy.split(":")
+            if int(port) in valid_ports:
+                if is_proxy_alive(ip, port):
+                    print(f"Working proxy found: {proxy}")
+                    return f"http://{proxy}"
+    return None
 if __name__ == '__main__':
-    t = AnyValue(choice=False)
-    print(t=="w")
-    print(t < 3)
-    print(t > 4)
-    print(t == 2)
+    get_working_proxy()
