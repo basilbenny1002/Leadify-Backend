@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const fetch = require('node-fetch');
 
 // List of common user agents
 const userAgents = [
