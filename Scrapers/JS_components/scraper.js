@@ -74,14 +74,7 @@ async function findFirstAliveProxy(proxyList) {
     }
 }
 
-async function main() {
-    let proxy_list = await get_proxies(proxy_url);
-    const working_proxy = await findFirstAliveProxy(proxy_list)
 
-    console.log(working_proxy);
-}
-
-main();
 
 async function scrapeTwitchAbout(url) {
     const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
@@ -131,8 +124,24 @@ async function scrapeTwitchAbout(url) {
 }
 
 const url = process.argv[2];
-scrapeTwitchAbout(url).then(result => {
-    console.log(JSON.stringify(result, null, 2));
-}).catch(error => {
-    console.error('Error:', error);
-});
+
+async function main() {
+    let proxy_list = await get_proxies(proxy_url);
+    const working_proxy = await findFirstAliveProxy(proxy_list)
+    scrapeTwitchAbout(url).then(result => {
+        console.log(JSON.stringify(result, null, 2));
+    }).catch(error => {
+        console.error('Error:', error);
+    });
+    
+
+    // console.log(working_proxy);
+}
+
+main();
+
+// scrapeTwitchAbout(url).then(result => {
+//     console.log(JSON.stringify(result, null, 2));
+// }).catch(error => {
+//     console.error('Error:', error);
+// });
