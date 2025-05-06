@@ -48,29 +48,29 @@ async function findFirstAliveProxy(proxyList) {
             const port = parseInt(url.port);
 
             if (!port || !allowedPorts.includes(port)) {
-                console.log(`Skipping ${proxy} — invalid or unsupported port`);
+                // console.log(`Skipping ${proxy} — invalid or unsupported port`);
                 continue;
             }
 
             const alive = await isProxyAlive(ip, port);
             if (alive) {
                 foundProxy = { ip, port };
-                console.log(`✅ Found working proxy: ${ip}:${port}`);
+                // console.log(`✅ Found working proxy: ${ip}:${port}`);
                 return `${ip}:${port}`;
                 
             } else {
-                console.log(`❌ Dead proxy: ${ip}:${port}`);
+                // console.log(`❌ Dead proxy: ${ip}:${port}`);
             }
 
         } catch (error) {
-            console.log(`Skipping invalid proxy format: ${proxy}`);
+            // console.log(`Skipping invalid proxy format: ${proxy}`);
         }
     }
 
     if (foundProxy) {
-        console.log('✅ Final chosen proxy:', foundProxy);
+        // console.log('✅ Final chosen proxy:', foundProxy);
     } else {
-        console.log('❌ No working proxy found.');
+        // console.log('❌ No working proxy found.');
     }
 }
 
