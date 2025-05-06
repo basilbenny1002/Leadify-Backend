@@ -9,10 +9,13 @@ from Scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
-import Scrapers.twitch_Scraper
+from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
 
 ANYT = AnyValue(choice=True)
+print("Starting FastAPI...", flush=True)
+print("Starting Scrapers...", flush=True)
+print(scrape_twitch_about("https://www.twitch.tv/phoenixsclive/about"), flush=True)
 
 app = FastAPI()
 app.add_middleware(
