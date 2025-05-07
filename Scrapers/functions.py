@@ -280,9 +280,10 @@ def scrape_twitch_about(url):
         # Parse the JSON output from the Node.js script
         # print(f"RESULT IS {result} and STDOUT THINGY IS {result.stdout}")
         # print(result.stdout)
-        data = json.loads(result.stdout)
-        #print(data)
-        return data
+        return result.stdout
+        # data = json.loads(result.stdout)
+        # #print(data)
+        # return data
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e.stderr}")

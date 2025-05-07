@@ -16,7 +16,7 @@ ANYT = AnyValue(choice=True)
 print("Starting FastAPI...", flush=True)
 print("Starting Scrapers...", flush=True)
 print(scrape_twitch_about("https://www.twitch.tv/phoenixsclive/about"), flush=True)
-
+print("Scraping done")
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"],
