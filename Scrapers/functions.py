@@ -286,8 +286,11 @@ def scrape_twitch_about(url):
         # return data
 
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred: {e.stderr}")
-        return {"links":"", "email":""}
+        print(f"An error occurred: {e.stderr}", flush=True)
+        return {"links":"", "email":"", "Error":f"e.stderr"}
+    except Exception as e:
+        print(f"An error occurred: {e}", flush=True)
+        return {"links":"", "email":"", "Error":f"e"}
 
 
 
