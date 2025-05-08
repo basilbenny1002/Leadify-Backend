@@ -22,10 +22,7 @@ import time
 import functools
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-except:
-    pass
+
 load_dotenv()
 class AnyValue:
     """
@@ -424,6 +421,18 @@ def try_parse_json(response):
 
 
 def get_twitch_details(channel_name, channel_id):
+    # try:
+    #     sys.stdout.reconfigure(encoding='utf-8')
+    # except:
+    #     print("Error: Unable to set stdout encoding to UTF-8. This may affect the display of non-ASCII characters.")
+    #     pass
+
+
+    # try:
+    #     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    # except Exception as e:
+    #     print("Could not reconfigure stdout encoding:", e)
+
     time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
     URL = 'https://gql.twitch.tv/gql'
 
@@ -514,9 +523,10 @@ def get_twitch_details(channel_name, channel_id):
     print("\n\n\n", flush=True)
 
     data = try_parse_json(resp)
+    # data = resp.json()
     print("Data: ", data, flush=True)
     # data = resp.json()
-    better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False))
+    better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False)) 
     print("Better data: ", better_data, flush=True)
     for link in better_data[1]['data']['user']['channel']['socialMedias']:
         print(link['url'])
@@ -538,5 +548,4 @@ def get_twitch_details(channel_name, channel_id):
 
 
 
-if __name__ == '__main__':
-    get_working_proxy()
+

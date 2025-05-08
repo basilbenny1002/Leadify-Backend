@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import threading
 import Scrapers
-
+import sys
 from Scrapers.twitch_Scraper import start
 from Scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,16 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
 from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
+import io
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except:
+    print("Error: Unable to set stdout encoding to UTF-8. This may affect the display of non-ASCII characters.")
+    pass
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+except Exception as e:
+    print("Could not reconfigure stdout encoding:", e)
 
 ANYT = AnyValue(choice=True)
 

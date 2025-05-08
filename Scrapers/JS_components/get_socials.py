@@ -123,4 +123,4 @@ def fetch_and_save(channel_name, channel_id):
   # print("Data written to grim.json")
 
 if __name__ == '__main__':
-    fetch_and_save("phoenixsclive", "82826005")
+    fetch_and_save("thinkingmansvalo", "783648767")
