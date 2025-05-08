@@ -379,6 +379,7 @@ def generate_device_id(length=32, only_a_to_d=False):
     key = ''.join(random.choices(chars, k=length))
     print(key)
     return key
+
 def try_parse_json(response):
     try:
         return response.json()
@@ -513,8 +514,10 @@ def get_twitch_details(channel_name, channel_id):
     print("\n\n\n", flush=True)
 
     data = try_parse_json(resp)
+    print("Data: ", data, flush=True)
     # data = resp.json()
     better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False))
+    print("Better data: ", better_data, flush=True)
     for link in better_data[1]['data']['user']['channel']['socialMedias']:
         print(link['url'])
         socials.append(link['url'])
