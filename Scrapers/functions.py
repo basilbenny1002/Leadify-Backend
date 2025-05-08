@@ -528,20 +528,33 @@ def get_twitch_details(channel_name, channel_id):
     # data = resp.json()
     better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False)) 
     print("Better data: ", better_data, flush=True)
-    for link in better_data[1]['data']['user']['channel']['socialMedias']:
-        print(link['url'])
-        socials.append(link['url'])
+
+    try:
+        for link in better_data[1]['data']['user']['channel']['socialMedias']:
+            print(link['url'])
+            socials.append(link['url'])
+    except TypeError as e:
+        print(f"TypeError First loop: {e} (status {resp.status_code})")
+    except Exception as e:
+        print(f"Error First loop : {e} (status {resp.status_code})")
         # print(better_data[10]['data']['user']['channel']['socialMedias']) #Socials links
         # for link in better_data[10]['data']['user']['channel']['socialMedias']:
         #     print(link['url']) #Socials links
-    for panel in better_data[2]['data']['user']['panels']:
-            # print(panel['linkURL'])
-        url = panel.get('linkURL')
-        if url:
-            print(url)
-            socials.append(url)
-        else:
-            print("No URL found for this panel.")
+    try:
+        for panel in better_data[2]['data']['user']['panels']:
+                # print(panel['linkURL'])
+            url = panel.get('linkURL')
+            if url:
+                print(url)
+                socials.append(url)
+            else:
+                print("No URL found for this panel.")
+    except TypeError as e:
+        print(f"TypeError Second loop: {e} (status {resp.status_code})")
+    except Exception as e:
+        print(f"Error Second loop: {e} (status {resp.status_code})")
+
+
     print("Description: ", better_data[1]['data']['user']['description'])
     emails = extract_emails(better_data[1]['data']['user']['description'])
     return {"emails": emails, "links": list(set(socials))}
