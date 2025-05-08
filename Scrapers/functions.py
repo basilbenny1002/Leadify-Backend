@@ -459,6 +459,10 @@ def get_twitch_details(channel_name, channel_id):
     return {"emails": emails, "socials": socials}
   
   print("Response status:", resp.status_code)
+  print("\n\n\n", flush=True)
+  print("Response text:", resp.text, flush=True)
+  print("\n\n\n", flush=True)
+
   data = resp.json()
   better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False))
   for link in better_data[1]['data']['user']['channel']['socialMedias']:
