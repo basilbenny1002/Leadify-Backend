@@ -5,7 +5,7 @@ import pandas as pd
 from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from Scrapers.functions import convert_to_percentage
+from Scrapers.functions import convert_to_percentage, get_twitch_details
 import logging
 import datetime
 import time
@@ -141,6 +141,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
                 streamer_info = {
                     "user_name": streams[i]['user_name'],
+                    "user_id": streams[i]['user_id'],
                     "viewer_count": streams[i]['viewer_count'],
                     "language": streams[i]['language'],
                     'game_name': streams[i]['game_name'],
@@ -221,7 +222,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
+        response = get_twitch_details(streamer['user_name'], streamer['user_id])'])
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
