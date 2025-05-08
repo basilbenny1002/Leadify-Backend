@@ -222,7 +222,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = get_twitch_details(streamer['user_name'], streamer['user_id])'])
+        response = get_twitch_details(streamer['user_name'], streamer['user_id'])
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -239,7 +239,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         mail = response.get('emails', [])
         mails_found.update(mail)
     except Exception as e:
-        logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
+        logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}",)
+        print(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}", flush=True)
         with lock:
             end_time = time.time()
             update_progress(user_id=user_id, values={"Completed": active_scrapers[user_id]["Completed"] + 1})
