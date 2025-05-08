@@ -418,7 +418,10 @@ def try_parse_json(response):
             return json.loads(content.decode('utf-8', errors='replace'))
         except Exception as e:
             raise ValueError("All decoding methods failed") from e
-
+def extract_urls(text):
+    # Regex pattern for URLs
+    url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
+    return re.findall(url_pattern, text)
 
 def get_twitch_details(channel_name, channel_id):
     # try:
@@ -543,10 +546,16 @@ def get_twitch_details(channel_name, channel_id):
     try:
         for panel in better_data[2]['data']['user']['panels']:
                 # print(panel['linkURL'])
-            url = panel.get('linkURL')
+            url = []
+            description = panel.get('description')
+            if description:
+                url.extend(extract_urls(description))
+                emails.extend(extract_emails(description))
+ 
+            link = panel.get('linkURL')
             if url:
                 print(url)
-                socials.append(url)
+                socials.extend(url)
             else:
                 print("No URL found for this panel.")
     except TypeError as e:
