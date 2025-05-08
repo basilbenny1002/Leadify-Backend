@@ -10,6 +10,13 @@ import random
 import string
 import socket
 import random
+import gzip
+import zlib
+import brotli
+import zstandard as zstd
+import io
+import json
+import requests
 import re
 import time
 import functools
@@ -372,117 +379,159 @@ def generate_device_id(length=32, only_a_to_d=False):
     key = ''.join(random.choices(chars, k=length))
     print(key)
     return key
+def try_parse_json(response):
+    try:
+        return response.json()
+    except Exception:
+        # Fallback to manual decoding attempts
+        content = response.content
+
+        # Try gzip
+        try:
+            return json.loads(gzip.decompress(content).decode('utf-8'))
+        except Exception:
+            pass
+
+        # Try deflate
+        try:
+            return json.loads(zlib.decompress(content).decode('utf-8'))
+        except Exception:
+            try:
+                return json.loads(zlib.decompress(content, -zlib.MAX_WBITS).decode('utf-8'))
+            except Exception:
+                pass
+
+        # Try brotli
+        try:
+            return json.loads(brotli.decompress(content).decode('utf-8'))
+        except Exception:
+            pass
+
+        # Try zstd
+        try:
+            dctx = zstd.ZstdDecompressor()
+            decompressed = dctx.decompress(content)
+            return json.loads(decompressed.decode('utf-8'))
+        except Exception:
+            pass
+
+        # Final fallback: try utf-8 text decoding
+        try:
+            return json.loads(content.decode('utf-8', errors='replace'))
+        except Exception as e:
+            raise ValueError("All decoding methods failed") from e
 
 
 def get_twitch_details(channel_name, channel_id):
-  time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
-  URL = 'https://gql.twitch.tv/gql'
+    time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
+    URL = 'https://gql.twitch.tv/gql'
 
-  HEADERS = {
-      'accept': '*/*',
-      'accept-encoding': 'gzip, deflate, br, zstd',
-      'accept-language': 'en-US',
-      # 'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
-      'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
-      'client-session-id': f'{generate_device_id(16, only_a_to_d=True).lower()}', #ANY RANDOM ONE SHOUDL WORK
-      'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
-      'content-type': 'text/plain;charset=UTF-8',
-      'origin': 'https://www.twitch.tv',
-      'priority': 'u=1, i',
-      'referer': 'https://www.twitch.tv/',
-      'sec-ch-ua': '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"',
-      'sec-fetch-dest': 'empty',
-      'sec-fetch-mode': 'cors',
-      'sec-fetch-site': 'same-site',
-      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
-      'x-device-id': f'{generate_device_id(32)}' #ANY RANDOM ONE SHOULD'VE WORKED
-  }
+    HEADERS = {
+        'accept': '*/*',
+        'accept-encoding': 'gzip, deflate, br, zstd',
+        'accept-language': 'en-US',
+        # 'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
+        'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
+        'client-session-id': f'{generate_device_id(16, only_a_to_d=True).lower()}', #ANY RANDOM ONE SHOUDL WORK
+        'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
+        'content-type': 'text/plain;charset=UTF-8',
+        'origin': 'https://www.twitch.tv',
+        'priority': 'u=1, i',
+        'referer': 'https://www.twitch.tv/',
+        'sec-ch-ua': '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                        'AppleWebKit/537.36 (KHTML, like Gecko) '
+                        'Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
+        'x-device-id': f'{generate_device_id(32)}' #ANY RANDOM ONE SHOULD'VE WORKED
+    }
 
-  payload_template ="""
-[
-  {
-    "operationName": "UseLive",
-    "variables": {
-      "channelLogin": "__CHANNEL_NAME__"
+    payload_template ="""
+    [
+    {
+        "operationName": "UseLive",
+        "variables": {
+        "channelLogin": "__CHANNEL_NAME__"
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "639d5f11bfb8bf3053b424d9ef650d04c4ebb7d94711d644afb08fe9a0fad5d9"
+        }
+        }
     },
-    "extensions": {
-      "persistedQuery": {
-        "version": 1,
-        "sha256Hash": "639d5f11bfb8bf3053b424d9ef650d04c4ebb7d94711d644afb08fe9a0fad5d9"
-      }
-    }
-  },
-  
-  {
-    "operationName": "ChannelRoot_AboutPanel",
-    "variables": {
-      "channelLogin": "__CHANNEL_NAME__",
-      "skipSchedule": true,
-      "includeIsDJ": true
-    },
-    "extensions": {
-      "persistedQuery": {
-        "version": 1,
-        "sha256Hash": "0df42c4d26990ec1216d0b815c92cc4a4a806e25b352b66ac1dd91d5a1d59b80"
-      }
-    }
-  },
-  
-  {
-    "operationName": "ChannelPanels",
-    "variables": {
-      "id": "__CHANNEL_ID__"
-    },
-    "extensions": {
-      "persistedQuery": {
-        "version": 1,
-        "sha256Hash": "06d5b518ba3b016ebe62000151c9a81f162f2a1430eb1cf9ad0678ba56d0a768"
-      }
-    }
-  }
-]""".strip() 
-  payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
-  print("Payload: ", payload)
-  print("Headers: ", HEADERS)
     
-  resp = requests.post(URL, headers=HEADERS, data=payload)
-  print("Response status:", resp.status_code)
-  emails = []
-  socials = []
-  try:
-    resp.raise_for_status()
-  except requests.HTTPError as e:
-    print(f"HTTP error: {e} (status {resp.status_code})")
-    return {"emails": emails, "socials": socials}
-  
-  print("Response status:", resp.status_code)
-  print("\n\n\n", flush=True)
-  print("Response text:", resp.text, flush=True)
-  print("\n\n\n", flush=True)
+    {
+        "operationName": "ChannelRoot_AboutPanel",
+        "variables": {
+        "channelLogin": "__CHANNEL_NAME__",
+        "skipSchedule": true,
+        "includeIsDJ": true
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "0df42c4d26990ec1216d0b815c92cc4a4a806e25b352b66ac1dd91d5a1d59b80"
+        }
+        }
+    },
+    
+    {
+        "operationName": "ChannelPanels",
+        "variables": {
+        "id": "__CHANNEL_ID__"
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "06d5b518ba3b016ebe62000151c9a81f162f2a1430eb1cf9ad0678ba56d0a768"
+        }
+        }
+    }
+    ]""".strip() 
+    payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
+    print("Payload: ", payload)
+    print("Headers: ", HEADERS)
+        
+    resp = requests.post(URL, headers=HEADERS, data=payload)
+    print("Response status:", resp.status_code)
+    emails = []
+    socials = []
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        print(f"HTTP error: {e} (status {resp.status_code})")
+        return {"emails": emails, "socials": socials}
+    
+    print("Response status:", resp.status_code)
+    print("\n\n\n", flush=True)
+    print("Response text:", resp.text, flush=True)
+    print("\n\n\n", flush=True)
 
-  data = resp.json()
-  better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False))
-  for link in better_data[1]['data']['user']['channel']['socialMedias']:
-    print(link['url'])
-    socials.append(link['url'])
-    # print(better_data[10]['data']['user']['channel']['socialMedias']) #Socials links
-    # for link in better_data[10]['data']['user']['channel']['socialMedias']:
-    #     print(link['url']) #Socials links
-  for panel in better_data[2]['data']['user']['panels']:
-        # print(panel['linkURL'])
-    url = panel.get('linkURL')
-    if url:
-      print(url)
-      socials.append(url)
-    else:
-      print("No URL found for this panel.")
-  print("Description: ", better_data[1]['data']['user']['description'])
-  emails = extract_emails(better_data[1]['data']['user']['description'])
-  return {"emails": emails, "links": list(set(socials))}
+    data = try_parse_json(resp)
+    # data = resp.json()
+    better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False))
+    for link in better_data[1]['data']['user']['channel']['socialMedias']:
+        print(link['url'])
+        socials.append(link['url'])
+        # print(better_data[10]['data']['user']['channel']['socialMedias']) #Socials links
+        # for link in better_data[10]['data']['user']['channel']['socialMedias']:
+        #     print(link['url']) #Socials links
+    for panel in better_data[2]['data']['user']['panels']:
+            # print(panel['linkURL'])
+        url = panel.get('linkURL')
+        if url:
+            print(url)
+            socials.append(url)
+        else:
+            print("No URL found for this panel.")
+    print("Description: ", better_data[1]['data']['user']['description'])
+    emails = extract_emails(better_data[1]['data']['user']['description'])
+    return {"emails": emails, "links": list(set(socials))}
 
 
 
