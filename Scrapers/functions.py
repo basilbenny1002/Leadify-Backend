@@ -375,6 +375,7 @@ def generate_device_id(length=32, only_a_to_d=False):
 
 
 def get_twitch_details(channel_name, channel_id):
+  time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
   URL = 'https://gql.twitch.tv/gql'
 
   HEADERS = {
