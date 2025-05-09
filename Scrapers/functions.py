@@ -265,6 +265,7 @@ def scrape_twitch_about(url):
         :param Twitch about url
         :return data: A json file
     """
+
     script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
     try:
         # Execute the Node.js script with the URL as an argument

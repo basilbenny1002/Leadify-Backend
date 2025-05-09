@@ -6,6 +6,7 @@ smootgh brain.png
 test.py
 post_test.py
 Scrapers\.env.
+Scrapers/.env.
 All streamers list.csv
 *.csv 
 Scrapers\__pycache__\
