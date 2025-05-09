@@ -270,10 +270,10 @@ def scrape_twitch_about(url):
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
-            ['node', script_path, url],
-            capture_output=True,
+            ['node', r'Scrapers/JS_components/scraper.js', url],
+            
             text=True,
-            check=True
+            check=True, stdout=subprocess.PIPE
         )
 
         # Parse the JSON output from the Node.js script
@@ -281,9 +281,10 @@ def scrape_twitch_about(url):
         # print(result.stdout)
         data = json.loads(result.stdout)
         #print(data)
-        return data
+        return result.stdout
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
+        return e
         print(f"An error occurred: {e.stderr}")
         return {"links":"", "email":""}
 
@@ -325,21 +326,38 @@ def scrape_youtube(channel_url: Union[list, set]):
     except:
         return mails
 
+def scrape_all(socials: list):
+    import subprocess
+import json
+
+def get_gmails_from_links(links):
+    print("Links to scrape:", links, flush=True)
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
+    print("done making script", flush=True)
+
+    # Convert list to JSON string
+    links_json = json.dumps(links)
+
+    # Run the Node.js script
+    result = subprocess.run(
+        ['node', script_path, links_json],
+        
+        text=True, stdout=subprocess.PIPE
+    )
+    print("done execution calling script", flush=True)
+    return result.stdout
+    print(result.stdout, flush=True)
+    print("done getting result", flush=True)
+    if result.returncode != 0:
+        print("Error:", result.stderr)
+        return []
+
+    # Parse the JSON output from Node.js
+    gmails = json.loads(result.stdout)
+    
+    return []
 
 
-def scrape_twitter(url):
-    response = requests.get(url, headers={
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-    'Accept-Language': 'en-US,en;q=0.9',
-})
-    print(response)
-    print(response.encoding)
-    # print(response.text.encode('utf-8', errors='ignore').decode('utf-8'))
-    with open("output.html", "w", encoding="utf-8") as f:
-        f.write(response.text)
-    # scraper = cloudscraper.create_scraper()
-    # response = scraper.get(url)
-    # print(response.text)
 
 # if __name__ == '__main__':
     # t = AnyValue(choice=False)
@@ -347,12 +365,4 @@ def scrape_twitter(url):
     # print(t < 3)
     # print(t > 4)
     # print(t == 2)
-    #scrape_twitter("https://x.com/phnixhamsta")
-    # try:
-    #     with open("output.html", "r", encoding="utf-8") as f:
-    #         html_text = f.read()
-    #         print(html_text)
-    #         print(extract_emails(html_text))
-    # except Exception as e:
-    #     print(f"something happened {e}")
-    # print(scrape_twitch_about("https://x.com/phnixhamsta")['emails']) # Adam
+

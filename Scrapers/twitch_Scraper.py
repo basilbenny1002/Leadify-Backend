@@ -5,7 +5,7 @@ import pandas as pd
 from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from Scrapers.functions import convert_to_percentage
+from Scrapers.functions import convert_to_percentage, get_gmails_from_links
 import logging
 import datetime
 import time
@@ -138,6 +138,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
 def process_streamer(streamer, index, user_id, streamers, results_queue):
     # global results_queue
+    print(f"Inside process streamer for {streamer['user_name']}", flush=True)
     current_process = 3
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -174,6 +175,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             "tiktok": "Couldn't find a tiktok account",
             "linkedin": "Couldn't find a linkedin account"
         }
+        print(f"Result first try block: {result}", flush=True)
         #results_queue.put(result)
     except Exception as e:
         logging.error(f"Error processing streamer {streamer['user_name']}: {str(e)}")
@@ -182,7 +184,10 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
+        print(f"Scraping Twitch about for {streamer['user_name']}, second try block", flush=True)
         response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
+        # print(response, flush=True)
+        print(f"Twitter Response for {streamer['user_name']}: {response}",flush=True)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -198,7 +203,9 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         socials = response.get('links', [])
         mail = response.get('emails', [])
         mails_found.update(mail)
+        print(f"Found mails: {mails_found}")    
     except Exception as e:
+        print(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}, second try block's exception ", flush=True)
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
         with lock:
             end_time = time.time()
@@ -212,6 +219,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     if not socials:
+        print(f"Socials not found for {streamer['user_name']}, third try block", flush=True)
         result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else "Couldn't find a valid mail"
         with lock:
             end_time = time.time()
@@ -224,7 +232,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     # Process social links
-    for social_links in socials:
+    for social_links in set(socials):
         if "youtube" in str(social_links).lower():
             yt_links.add(social_links)
         if "tiktok" in str(social_links).lower():
@@ -333,13 +341,21 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
+            print("Creating thread for streamer:", streamers[i]['user_name'], flush=True)
             thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
+            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
+            print("Gonna wait for 3 seocnds now", flush=True)
+            time.sleep(3)  # Optional: Add a small delay to avoid overwhelming the system
+            print("Waited for 3 seconds", flush=True)
         except Exception as e:
+            
             print(f"Error occurred{e}:", flush=True)
-        if len(threads) >= 4:  #number of threads
+        else:
+            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
+        if len(threads) >= 1:  #number of threads
             for t in threads:
                 t.join()
             threads = []
@@ -358,6 +374,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     datas = {
         'username': [],
+        'channel url':[],
         'followers': [],
         'viewer_count': [],
         'language': [],
