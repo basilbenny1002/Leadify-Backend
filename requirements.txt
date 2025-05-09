@@ -12,3 +12,4 @@ fastapi-cli
 uvicorn[standard]
 brotli
 zstandard
+httpx
