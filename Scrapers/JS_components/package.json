@@ -1,5 +1,9 @@
 {
+  "puppeteer": {
+    "default_browser_revision": "1340698"
+  },
   "dependencies": {
-    "puppeteer": "^24.4.0"
+    "puppeteer": "^24.4.0",
+    "node-fetch": "^3.3.2"
   }
 }
