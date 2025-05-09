@@ -1,3 +1,4 @@
+
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
@@ -74,6 +75,7 @@ async function scrapeTwitchAbout(url) {
 }
 
 const url = process.argv[2];
+
 if (!url) {
   console.error('Please provide a URL as an argument.');
   process.exit(1);
@@ -82,3 +84,4 @@ if (!url) {
 scrapeTwitchAbout(url)
   .then(result => console.log(JSON.stringify(result, null, 2)))
   .catch(err => console.error('Unhandled error:', err));
+

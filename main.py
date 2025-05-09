@@ -17,7 +17,7 @@ ANYT = AnyValue(choice=True)
 
 app = FastAPI()
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"],
+    CORSMiddleware, allow_origins=["http://localhost:3000", "https://www.leadifysolutions.xyz", "www.leadifysolutions.xyz", "leadifysolutions.xyz"],    
     allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 app.include_router(webhook_router) 

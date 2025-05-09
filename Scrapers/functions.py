@@ -45,7 +45,7 @@ def convert_to_percentage(value: int, max_value: int) -> int:
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
-        if int(min_viewer_c) < int(streams['viewer_count']):
+        if min_viewer_c < streams['viewer_count']:
             return True
         else:
             return False
@@ -265,8 +265,8 @@ def scrape_twitch_about(url):
         :param Twitch about url
         :return data: A json file
     """
-    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
 
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
@@ -325,6 +325,7 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
     except:
         return mails
+
 def scrape_all(socials: list):
     import subprocess
 import json
@@ -364,9 +365,4 @@ def get_gmails_from_links(links):
     # print(t < 3)
     # print(t > 4)
     # print(t == 2)
-    # links = [
-    #     "https://www.twitch.tv/josyfka",
-    # ]
 
-    # gmails = scrape_twitch_about("https://www.twitch.tv/josyfka")
-    # print("Found gmails:", gmails)
