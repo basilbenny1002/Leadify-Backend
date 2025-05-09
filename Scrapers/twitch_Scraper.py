@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import pandas as pd
-from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
+from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id, scrape_emails_and_socials
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from Scrapers.functions import convert_to_percentage, get_gmails_from_links
@@ -97,7 +97,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             """
             Iterating over the API response and appending details of streamers with more than the specified number of followers to a list
             """
-            if valid_streamers > 4:
+            if valid_streamers > 10:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
             if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
@@ -184,10 +184,14 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        print(f"Scraping Twitch about for {streamer['user_name']}, second try block", flush=True)
-        response = scrape_twitch_about(f"https://www.twitch.tv/{streamer['user_name']}/about")
-        # print(response, flush=True)
-        print(f"Twitter Response for {streamer['user_name']}: {response}",flush=True)
+        print(f"Scraping Twitch about for {streamer['user_name']}", flush=True)
+        try:
+            
+            response = scrape_emails_and_socials(f"https://www.twitch.tv/{streamer['user_name']}/about")
+            print(f"paywright first scrape response: {response}")
+        except Exception as e:
+            print(f"Error in playwright scrape for {streamer['user_name']}: {str(e)}")
+
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -200,7 +204,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             
             results_queue.put(result)
             return
-        socials = response.get('links', [])
+        socials = response.get('socials', [])
         mail = response.get('emails', [])
         mails_found.update(mail)
         print(f"Found mails: {mails_found}")    
@@ -353,9 +357,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         except Exception as e:
             
             print(f"Error occurred{e}:", flush=True)
-        else:
-            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
-        if len(threads) >= 1:  #number of threads
+        if len(threads) > 0:  #number of threads
+
             for t in threads:
                 t.join()
             threads = []
