@@ -2,12 +2,27 @@ import requests
 import subprocess, json
 from typing import Union
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright
+import requests
+import json
+import sys
+import random
+import string
+import socket
+import random
+import gzip
+import zlib
+import brotli
+import zstandard as zstd
+import io
+import json
+import requests
 import re
 import time
 import functools
-import os
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
+
 load_dotenv()
 class AnyValue:
     """
@@ -45,7 +60,7 @@ def convert_to_percentage(value: int, max_value: int) -> int:
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
-        if min_viewer_c < streams['viewer_count']:
+        if int(min_viewer_c) < int(streams['viewer_count']):
             return True
         else:
             return False
@@ -106,41 +121,41 @@ def scrape_twitter_profile(twitter_profile_url):
     :return:
     Dictionary containing the profile info
     """
-    # Launch a headless browser with Playwright
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"
+    ]
+
+    random_user_agent = random.choice(user_agents)
+
     try:
         with sync_playwright() as p:
-            # Start Chromium in headless mode (set headless=False to see the browser)
-            browser = p.chromium.launch(headless=True)
-            # Create a new page
-            page = browser.new_page()
-            # Navigate to the Twitter profile URL
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+            context = browser.new_context(user_agent=random_user_agent,proxy={"server": str(get_working_proxy())})
+            page = context.new_page()
             page.goto(f'{twitter_profile_url}')
-            # Wait for the profile's display name element to load (up to 10 seconds)
             page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
 
-            # Extract display name
             display_name_element = page.query_selector('[data-testid="UserName"]')
             display_name = display_name_element.text_content().strip() if display_name_element else "Not found"
 
-            # Extract bio
             bio_element = page.query_selector('[data-testid="UserDescription"]')
             bio = bio_element.text_content().strip() if bio_element else "No bio"
 
-            # Extract join date (looks for a span containing "Joined")
             join_date_element = page.query_selector('span:has-text("Joined")')
             join_date = join_date_element.text_content().strip() if join_date_element else "Not found"
 
-            # Extract followers count from the aria-label attribute
             followers_element = page.query_selector('[aria-label*="Followers"][role="link"]')
             followers = (followers_element.get_attribute('aria-label').split()[0]
                          if followers_element else "Not found")
 
-            # Extract following count from the aria-label attribute
             following_element = page.query_selector('[aria-label*="Following"][role="link"]')
             following = (following_element.get_attribute('aria-label').split()[0]
                          if following_element else "Not found")
 
-            # Close the browser
             browser.close()
     except:
         return {
@@ -151,79 +166,13 @@ def scrape_twitter_profile(twitter_profile_url):
             "following": ""
         }
     else:
-            # Return the scraped data as a dictionary
-            return {
-                "display_name": display_name,
-                "bio": bio,
-                "join_date": join_date,
-                "followers": followers,
-                "following": following
-            }
-
-import re
-from playwright.sync_api import sync_playwright
-
-def scrape_emails_and_socials(twitch_url: str) -> dict:
-    """
-    Scrapes a Twitter profile for Gmail addresses and social media links.
-    
-    :param twitch_url: str) -> dict:: URL of the Twitter profile
-    :return: Dictionary with 'email' and 'socials' keys
-    """
-    print(f"Scraping {twitch_url} for emails and socials...")
-
-    result = {"email": [], "socials": []}
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            print(f"Browser launched{p}", flush=True)
-            page = browser.new_page()
-            print("GONNA CALL THE URL", flush=True)
-            try:
-                page.goto(twitch_url, timeout=15000)
-                print(f"Page loaded successfully.", flush=True)
-            except Exception as e:
-                print(f"Something happend {e}", flush=True)
-            print("GOT THE URL", flush=True)
-            page.wait_for_selector('[data-testid="UserName"]', timeout=10000)
-            print("WAITED FOR SELECTOR", flush=True)
-            # Get the full page content
-            print("GONNA GET THE CONTENT", flush=True)
-            content = page.content()
-            print("GOT THE CONTENT", flush=True)
-            email_pattern = r'\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b'
-            # Regex for Gmail addresses
-            print("GONNA FIND THE EMAILS", flush=True)
-            emails = re.findall(email_pattern, content, re.IGNORECASE)
-            print("FOUND THE EMAILS", flush=True)
-            # Regex for common social links
-            social_patterns = [
-                r'https?://(?:www\.)?linkedin\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?instagram\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?facebook\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?youtube\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?tiktok\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?twitter\.com/[^\s"\'<>]+',
-                r'https?://(?:www\.)?x\.com/[^\s"\'<>]+'
-            ]
-            social_links = []
-            print("GONNA FIND THE SOCIALS", flush=True)
-            for pattern in social_patterns:
-                social_links += re.findall(pattern, content, re.IGNORECASE)
-            print("FOUND THE SOCIALS", flush=True)
-            browser.close()
-            print("CLOSED THE BROWSER", flush=True)
-            
-            result["email"] = list(set(emails))
-            result["socials"] = list(set(social_links))
-            print("RESULTS", flush=True)
-            print(result, flush=True)
-    except Exception as e:
-        print(f"Error: {e}", flush=True)
-
-    return result
-
-
+        return {
+            "display_name": display_name,
+            "bio": bio,
+            "join_date": join_date,
+            "followers": followers,
+            "following": following
+        }
 @time_it
 def extract_emails(text: str) -> list[str]:
     """
@@ -329,28 +278,31 @@ def scrape_twitch_about(url):
         :param Twitch about url
         :return data: A json file
     """
+    # script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
 
-    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
             ['node', r'Scrapers/JS_components/scraper.js', url],
-            
+            capture_output=True,
             text=True,
-            check=True, stdout=subprocess.PIPE
+            check=True
         )
 
         # Parse the JSON output from the Node.js script
         # print(f"RESULT IS {result} and STDOUT THINGY IS {result.stdout}")
         # print(result.stdout)
-        data = json.loads(result.stdout)
-        #print(data)
         return result.stdout
+        # data = json.loads(result.stdout)
+        # #print(data)
+        # return data
 
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e.stderr}", flush=True)
+        return {"links":"", "email":"", "Error":f"e.stderr"}
     except Exception as e:
-        return e
-        print(f"An error occurred: {e.stderr}")
-        return {"links":"", "email":""}
+        print(f"An error occurred: {e}", flush=True)
+        return {"links":"", "email":"", "Error":f"e"}
 
 
 
@@ -389,44 +341,233 @@ def scrape_youtube(channel_url: Union[list, set]):
         return mails
     except:
         return mails
+def is_proxy_alive(ip, port, timeout=3):
+    """
+    Check if a proxy server at given IP and port is alive.
 
-def scrape_all(socials: list):
-    import subprocess
-import json
-
-def get_gmails_from_links(links):
-    print("Links to scrape:", links, flush=True)
-    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
-    print("done making script", flush=True)
-
-    # Convert list to JSON string
-    links_json = json.dumps(links)
-
-    # Run the Node.js script
-    result = subprocess.run(
-        ['node', script_path, links_json],
-        
-        text=True, stdout=subprocess.PIPE
-    )
-    print("done execution calling script", flush=True)
-    return result.stdout
-    print(result.stdout, flush=True)
-    print("done getting result", flush=True)
-    if result.returncode != 0:
-        print("Error:", result.stderr)
-        return []
-
-    # Parse the JSON output from Node.js
-    gmails = json.loads(result.stdout)
+    Returns True if reachable, False otherwise.
+    """
+    try:
+        with socket.create_connection((ip, port), timeout=timeout):
+            return True
+    except (socket.timeout, socket.error):
+        return False
     
-    return []
+def get_working_proxy():
+    url = "https://api.proxyscrape.com/v2/?request=getproxies&proxytype=https&timeout=10000&country=all"
+    valid_ports = [80, 8080, 3128, 1080, 8888, 443]
+    response = requests.get(url)
+    proxies = response.text.split("\r\n")
+    for proxy in proxies:
+        if 'https' not in proxy:
+            ip, port = proxy.split(":")
+            if int(port) in valid_ports:
+                if is_proxy_alive(ip, port):
+                    print(f"Working proxy found: {proxy}")
+                    return f"http://{proxy}"
+    return None
+
+
+def generate_device_id(length=32, only_a_to_d=False):
+    if only_a_to_d:
+        chars = 'abcdABCD' + string.digits  # Only a-d (case sensitive) + digits
+    else:
+        chars = string.ascii_letters + string.digits  # A-Z, a-z, 0-9
+    key = ''.join(random.choices(chars, k=length))
+    print(key)
+    return key
+
+def try_parse_json(response):
+    try:
+        return response.json()
+    except Exception:
+        # Fallback to manual decoding attempts
+        content = response.content
+
+        # Try gzip
+        try:
+            return json.loads(gzip.decompress(content).decode('utf-8'))
+        except Exception:
+            pass
+
+        # Try deflate
+        try:
+            return json.loads(zlib.decompress(content).decode('utf-8'))
+        except Exception:
+            try:
+                return json.loads(zlib.decompress(content, -zlib.MAX_WBITS).decode('utf-8'))
+            except Exception:
+                pass
+
+        # Try brotli
+        try:
+            return json.loads(brotli.decompress(content).decode('utf-8'))
+        except Exception:
+            pass
+
+        # Try zstd
+        try:
+            dctx = zstd.ZstdDecompressor()
+            decompressed = dctx.decompress(content)
+            return json.loads(decompressed.decode('utf-8'))
+        except Exception:
+            pass
+
+        # Final fallback: try utf-8 text decoding
+        try:
+            return json.loads(content.decode('utf-8', errors='replace'))
+        except Exception as e:
+            raise ValueError("All decoding methods failed") from e
+def extract_urls(text):
+    # Regex pattern for URLs
+    url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
+    return re.findall(url_pattern, text)
+
+def get_twitch_details(channel_name, channel_id):
+    # try:
+    #     sys.stdout.reconfigure(encoding='utf-8')
+    # except:
+    #     print("Error: Unable to set stdout encoding to UTF-8. This may affect the display of non-ASCII characters.")
+    #     pass
+
+
+    # try:
+    #     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    # except Exception as e:
+    #     print("Could not reconfigure stdout encoding:", e)
+
+    time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
+    URL = 'https://gql.twitch.tv/gql'
+
+    HEADERS = {
+        'accept': '*/*',
+        'accept-encoding': 'gzip, deflate, br, zstd',
+        'accept-language': 'en-US',
+        # 'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
+        'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
+        'client-session-id': f'{generate_device_id(16, only_a_to_d=True).lower()}', #ANY RANDOM ONE SHOUDL WORK
+        'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
+        'content-type': 'text/plain;charset=UTF-8',
+        'origin': 'https://www.twitch.tv',
+        'priority': 'u=1, i',
+        'referer': 'https://www.twitch.tv/',
+        'sec-ch-ua': '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                        'AppleWebKit/537.36 (KHTML, like Gecko) '
+                        'Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
+        'x-device-id': f'{generate_device_id(32)}' #ANY RANDOM ONE SHOULD'VE WORKED
+    }
+
+    payload_template ="""
+    [
+    {
+        "operationName": "UseLive",
+        "variables": {
+        "channelLogin": "__CHANNEL_NAME__"
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "639d5f11bfb8bf3053b424d9ef650d04c4ebb7d94711d644afb08fe9a0fad5d9"
+        }
+        }
+    },
+    
+    {
+        "operationName": "ChannelRoot_AboutPanel",
+        "variables": {
+        "channelLogin": "__CHANNEL_NAME__",
+        "skipSchedule": true,
+        "includeIsDJ": true
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "0df42c4d26990ec1216d0b815c92cc4a4a806e25b352b66ac1dd91d5a1d59b80"
+        }
+        }
+    },
+    
+    {
+        "operationName": "ChannelPanels",
+        "variables": {
+        "id": "__CHANNEL_ID__"
+        },
+        "extensions": {
+        "persistedQuery": {
+            "version": 1,
+            "sha256Hash": "06d5b518ba3b016ebe62000151c9a81f162f2a1430eb1cf9ad0678ba56d0a768"
+        }
+        }
+    }
+    ]""".strip() 
+    payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
+    print("Payload: ", payload)
+    print("Headers: ", HEADERS)
+        
+    resp = requests.post(URL, headers=HEADERS, data=payload)
+    print("Response status:", resp.status_code)
+    emails = []
+    socials = []
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as e:
+        print(f"HTTP error: {e} (status {resp.status_code})")
+        return {"emails": emails, "socials": socials}
+    
+    print("Response status:", resp.status_code)
+    print("\n\n\n", flush=True)
+    print("Response text:", resp.text, flush=True)
+    print("\n\n\n", flush=True)
+
+    data = try_parse_json(resp)
+    # data = resp.json()
+    print("Data: ", data, flush=True)
+    # data = resp.json()
+    better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False)) 
+    print("Better data: ", better_data, flush=True)
+
+    try:
+        for link in better_data[1]['data']['user']['channel']['socialMedias']:
+            print(link['url'])
+            socials.append(link['url'])
+    except TypeError as e:
+        print(f"TypeError First loop: {e} (status {resp.status_code})")
+    except Exception as e:
+        print(f"Error First loop : {e} (status {resp.status_code})")
+        # print(better_data[10]['data']['user']['channel']['socialMedias']) #Socials links
+        # for link in better_data[10]['data']['user']['channel']['socialMedias']:
+        #     print(link['url']) #Socials links
+    try:
+        for panel in better_data[2]['data']['user']['panels']:
+                # print(panel['linkURL'])
+            url = []
+            description = panel.get('description')
+            if description:
+                url.extend(extract_urls(description))
+                emails.extend(extract_emails(description))
+ 
+            link = panel.get('linkURL')
+            if url:
+                print(url)
+                socials.extend(url)
+            else:
+                print("No URL found for this panel.")
+    except TypeError as e:
+        print(f"TypeError Second loop: {e} (status {resp.status_code})")
+    except Exception as e:
+        print(f"Error Second loop: {e} (status {resp.status_code})")
+
+
+    print("Description: ", better_data[1]['data']['user']['description'])
+    emails = extract_emails(better_data[1]['data']['user']['description'])
+    return {"emails": emails, "links": list(set(socials))}
 
 
 
-# if __name__ == '__main__':
-    # t = AnyValue(choice=False)
-    # print(t=="w")
-    # print(t < 3)
-    # print(t > 4)
-    # print(t == 2)
 

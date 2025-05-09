@@ -3,24 +3,31 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import threading
 import Scrapers
-
+import sys
 from Scrapers.twitch_Scraper import start
 from Scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
-import Scrapers.twitch_Scraper
+from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
-from lemon_squeezy_webhooks import router as webhook_router  # <-- 👈 Import the router here
+import io
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except:
+    print("Error: Unable to set stdout encoding to UTF-8. This may affect the display of non-ASCII characters.")
+    pass
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+except Exception as e:
+    print("Could not reconfigure stdout encoding:", e)
 
 ANYT = AnyValue(choice=True)
 
 app = FastAPI()
 app.add_middleware(
-    CORSMiddleware, allow_origins=["http://localhost:3000", "https://www.leadifysolutions.xyz", "www.leadifysolutions.xyz", "leadifysolutions.xyz"],    
+    CORSMiddleware, allow_origins=["*"],
     allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
-
-app.include_router(webhook_router) 
 
 @app.get("/")
 def read_root():
@@ -36,7 +43,7 @@ def start_scraper(**kwargs):
     return data
 @app.get("/Twitch_scraper")
 def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None] = Query(default=None), language: Union[str, None] = Query(default=None), viewer_count: Union[str, None] = Query(default=None),  maximum_followers: Union[str, None] = Query(default=None)):
-    thread = threading.Thread(target=start,kwargs={"c":category, "user_id":user_id, "min_f":minimum_followers if minimum_followers else 0, "choice_l":language if language else ANYT, "min_viewer_c":viewer_count if viewer_count else 0, "max_f": maximum_followers if maximum_followers else 1000000000})
+    thread = threading.Thread(target=start,kwargs={"c":category, "user_id":user_id, "min_f":minimum_followers if minimum_followers else ANYT, "choice_l":language if language else ANYT, "min_viewer_c":viewer_count if viewer_count else ANYT, "max_f": maximum_followers if maximum_followers else ANYT})
     thread.start()  
     # data = start_scraper(category=category, minimum_followers=minimum_followers if minimum_followers else ANYT, language=language if minimum_followers else ANYT, viewer_count=viewer_count if viewer_count else ANYT)
     data = {"Status": "Started"}

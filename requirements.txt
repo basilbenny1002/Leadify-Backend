@@ -10,3 +10,5 @@ psycopg2
 supabase
 fastapi-cli
 uvicorn[standard]
+brotli
+zstandard
