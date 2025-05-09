@@ -5,6 +5,7 @@ from playwright.sync_api import sync_playwright
 import re
 import time
 import functools
+import os
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 load_dotenv()
@@ -44,7 +45,7 @@ def convert_to_percentage(value: int, max_value: int) -> int:
 
 def classify(choice_l: str, min_viewer_c: int, streams: dict):
     if choice_l == streams['language']:
-        if int(min_viewer_c) < int(streams['viewer_count']):
+        if min_viewer_c < streams['viewer_count']:
             return True
         else:
             return False
@@ -328,15 +329,15 @@ def scrape_twitch_about(url):
         :param Twitch about url
         :return data: A json file
     """
-    # script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
 
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'scraper.js')
     try:
         # Execute the Node.js script with the URL as an argument
         result = subprocess.run(
             ['node', r'Scrapers/JS_components/scraper.js', url],
-            capture_output=True,
+            
             text=True,
-            check=True
+            check=True, stdout=subprocess.PIPE
         )
 
         # Parse the JSON output from the Node.js script
@@ -344,9 +345,10 @@ def scrape_twitch_about(url):
         # print(result.stdout)
         data = json.loads(result.stdout)
         #print(data)
-        return data
+        return result.stdout
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
+        return e
         print(f"An error occurred: {e.stderr}")
         return {"links":"", "email":""}
 
@@ -388,10 +390,43 @@ def scrape_youtube(channel_url: Union[list, set]):
     except:
         return mails
 
+def scrape_all(socials: list):
+    import subprocess
+import json
 
-if __name__ == '__main__':
-    t = AnyValue(choice=False)
-    print(t=="w")
-    print(t < 3)
-    print(t > 4)
-    print(t == 2)
+def get_gmails_from_links(links):
+    print("Links to scrape:", links, flush=True)
+    script_path = os.path.join(os.path.dirname(__file__), 'JS_components', 'mail_extractor.js')
+    print("done making script", flush=True)
+
+    # Convert list to JSON string
+    links_json = json.dumps(links)
+
+    # Run the Node.js script
+    result = subprocess.run(
+        ['node', script_path, links_json],
+        
+        text=True, stdout=subprocess.PIPE
+    )
+    print("done execution calling script", flush=True)
+    return result.stdout
+    print(result.stdout, flush=True)
+    print("done getting result", flush=True)
+    if result.returncode != 0:
+        print("Error:", result.stderr)
+        return []
+
+    # Parse the JSON output from Node.js
+    gmails = json.loads(result.stdout)
+    
+    return []
+
+
+
+# if __name__ == '__main__':
+    # t = AnyValue(choice=False)
+    # print(t=="w")
+    # print(t < 3)
+    # print(t > 4)
+    # print(t == 2)
+

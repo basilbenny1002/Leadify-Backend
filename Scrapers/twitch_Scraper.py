@@ -5,7 +5,7 @@ import pandas as pd
 from Scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id, scrape_emails_and_socials
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from Scrapers.functions import convert_to_percentage
+from Scrapers.functions import convert_to_percentage, get_gmails_from_links
 import logging
 import datetime
 import time
@@ -38,20 +38,6 @@ def remove_progress(user_id):
 
 ANYT = AnyValue(choice=True)
 ANYF = AnyValue(choice=False)
-# choice_language = ANYT
-# min_followers = 0
-# max_followers = 100000000000000
-# min_viewer_count = 0
-# category = None
-# current_process = 0
-# completed = 0
-# done = False
-# search_id = ""
-# download_url = ""
-
-# elapsed, remaining, rate, valid_streamers = 0, 0, 0, 0
-# total_streamers = 0
-# percentage = 0
 
 lock = threading.Lock()
 
@@ -62,42 +48,18 @@ supabase = create_client(os.getenv("NEXT_PUBLIC_SUPABASE_URL"), os.getenv("NEXT_
 logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
-# today = datetime.date.today()
-# yesterday = today - datetime.timedelta(days=1)
-# load_dotenv()
-# streams = None
-# access_token = os.getenv("access_token")  # TODO: paste your access token here
-# client_id = os.getenv("client_id")  # TODO: paste your client_id here
-# game_id = ""  # TODO: paste the game id you want to filter from
-# # output_file_name = "CSGO streamers(17-04-2025)3.csv"  # TODO: file name of the output, make sure to include .csv
-# # Initialising empty lists to store values
-# datas = {}
 
-# username = []
-# followers = []
-# viewer_count = []
-# language = []
-# game_name = []
-# discord = []
-# youtube = []
-# gmail = []
-# # streamers = []
-# subscriber_count = []
 def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: int, min_viewer_count: int, choice_l: str):
     choice_language = choice_l
     category = game_id
-    # global streams, all_streamers, results_queue #streamers
-    # global max_followers, choice_language, min_viewer_count, category
-    # global access_token, client_id, game_name, discord, youtube, gmail, subscriber_count #min_followers, game_id, output_file_name, username, followers, viewer_count, language
-    # global search_id, download_url
+
     ANYT = AnyValue(choice=True)
     ANYF = AnyValue(choice=False)
     # Set up logging
     logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
                         format="%(asctime)s - %(levelname)s - %(message)s")
 
-    # today = datetime.date.today()
-    # yesterday = today - datetime.timedelta(days=1)
+ 
     load_dotenv()
     # streams = None
     access_token = os.getenv("access_token")  # TODO: paste your access token here
@@ -138,7 +100,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             if valid_streamers > 10:
                 break
             follower = get_follower_count(client_id, access_token, user_id=streams[i]['user_id'])  # function to get follower count
-            if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < int(max_followers) and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
+            if follower > min_followers and streams[i]['user_name'] not in previous_streamers and follower < max_followers and classify(choice_l=choice_language, min_viewer_c=min_viewer_count, streams=streams[i]):
                 streamer_info = {
                     "user_name": streams[i]['user_name'],
                     "viewer_count": streams[i]['viewer_count'],
@@ -169,14 +131,14 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
             pbar.update(1)
     complete_streamer_list = {"Name": previous_streamers}
-    # print(previous_streamers)
-    # valid_streamers = len(streamers)
+    
     logging.info("Found %d unique streamers", len(streamers))
     logging.info("Done collecting streamers with more than %d followers", min_followers)
     logging.info("Collecting other info")
 
 def process_streamer(streamer, index, user_id, streamers, results_queue):
     # global results_queue
+    print(f"Inside process streamer for {streamer['user_name']}", flush=True)
     current_process = 3
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -213,6 +175,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             "tiktok": "Couldn't find a tiktok account",
             "linkedin": "Couldn't find a linkedin account"
         }
+        print(f"Result first try block: {result}", flush=True)
         #results_queue.put(result)
     except Exception as e:
         logging.error(f"Error processing streamer {streamer['user_name']}: {str(e)}")
@@ -228,6 +191,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             print(f"paywright first scrape response: {response}")
         except Exception as e:
             print(f"Error in playwright scrape for {streamer['user_name']}: {str(e)}")
+
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -243,7 +207,9 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         socials = response.get('socials', [])
         mail = response.get('emails', [])
         mails_found.update(mail)
+        print(f"Found mails: {mails_found}")    
     except Exception as e:
+        print(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}, second try block's exception ", flush=True)
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}")
         with lock:
             end_time = time.time()
@@ -257,6 +223,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     if not socials:
+        print(f"Socials not found for {streamer['user_name']}, third try block", flush=True)
         result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else "Couldn't find a valid mail"
         with lock:
             end_time = time.time()
@@ -269,7 +236,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     # Process social links
-    for social_links in socials:
+    for social_links in set(socials):
         if "youtube" in str(social_links).lower():
             yt_links.add(social_links)
         if "tiktok" in str(social_links).lower():
@@ -282,6 +249,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             dc_links.append(social_links)
         if "x" in str(social_links).lower() or "twitter" in str(social_links).lower():
             twitter_links.append(social_links)
+        if "instagram" in str(social_links).lower():
+            instagram_links.append(social_links)
 
     if tiktok_links:
         result['tiktok'] = ", ".join(str(link) for link in tiktok_links)
@@ -316,12 +285,10 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     # Process Twitter and additional email scraping
     if twitter_links:
         try:
-            twitter_response = scrape_twitter_profile(twitter_links[0])
-            if isinstance(twitter_response, dict) and 'bio' in twitter_response:
-                bio = twitter_response['bio']
-                mail = extract_emails(bio)
-                if mail:
-                    mails_found.update(mail)
+            twitter_response = scrape_twitch_about(twitter_links[0])
+            mail = twitter_response['emails']
+            if mail:
+                mails_found.update(mail)
             else:
                 logging.warning(f"Invalid Twitter response for {streamer['user_name']}: {twitter_response}")
         except Exception as e:
@@ -351,13 +318,6 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         active_scrapers[user_id]["ETA"] = (len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"]
     results_queue.put(result)
 
-    # with lock:
-    #     # completed += 1
-    #     update_progress(user_id, values={ 
-    #     "Completed": active_scrapers[user_id]["Completed"] + 1, "Percentage": stage_3_percentage
-    #     }) 
-    # results_queue.put(result)
-
 
 
 # Main processing with threading
@@ -369,15 +329,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     lock = threading.Lock()
 
     streamers = []
-    # global min_followers, max_followers, choice_language, min_viewer_count, category, game_id, datas, results_queue, search_id, download_url
-    # completed = 0
-    # percentage = 0
-    # min_followers = min_f
-    # max_followers = max_f
-    # choice_language = choice_l
-    # min_viewer_count = min_viewer_c
-    # category = c
-    # game_id = c
+ 
     initial(user_id=user_id, streamers=streamers, min_followers=min_f, max_followers=max_f, choice_l=choice_l, min_viewer_count=min_viewer_c, game_id=c)  # Initialize the variables and get the list of streamers
 
     current_process = 3
@@ -389,27 +341,28 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     all_threads = []
     results_queue = queue.Queue()
 
-    # start_time = time.time()
     print(f"Streamers: {streamers}")
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
+            print("Creating thread for streamer:", streamers[i]['user_name'], flush=True)
             thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
+            print(f"Thread started for {streamers[i]['user_name']}", flush=True)
+            print("Gonna wait for 3 seocnds now", flush=True)
+            time.sleep(3)  # Optional: Add a small delay to avoid overwhelming the system
+            print("Waited for 3 seconds", flush=True)
         except Exception as e:
+            
             print(f"Error occurred{e}:", flush=True)
         if len(threads) > 0:  #number of threads
+
             for t in threads:
                 t.join()
             threads = []
-        # elapsed = time.time() - start_time
-        # processed = i + 1
-        # avg_time = elapsed / processed
-        # rate = avg_time
-        # remaining = avg_time * (len(streamers) - processed)
-        # update_progress(user_id, values={"Rate": avg_time, "ETA": remaining})
+       
 
     for t in all_threads:
         t.join()
@@ -424,6 +377,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     datas = {
         'username': [],
+        'channel url':[],
         'followers': [],
         'viewer_count': [],
         'language': [],
@@ -446,16 +400,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         result = results_queue.get()
         for key in datas:
             datas[key].append(result[key])
-
-    # Save
-    # df = pd.DataFrame(all_streamers)
-    # df.to_csv("All streamers list.csv")
-    # df = pd.DataFrame(datas)
-    # df.to_csv(path_or_buf="test.csv", index=False)
-    # print(f"Processed {len(datas['username'])} streamers")
-    
-   
-
 
 
     # Save data to CSV
@@ -483,34 +427,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     }
     upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
 
-    # file_name = f"{user_id}/{str(uuid.uuid4())}.csv"  # you must pass user_id to this function
 
-    # with open("test.csv", "rb") as f:
-    #     res = supabase.storage.from_("results").upload(file_name, f)
-    #     print(res)
-    # if not res.path:
-    #     raise Exception(f"CSV upload failed: {res}")
-    
-    # Now insert metadata into the table
-    
-    # print(type(min_f), min_f)
-    # print(type(max_f), max_f)
-    # print(type(choice_l), choice_l)
-    # print(type(min_viewer_c), min_viewer_c)
-    # print(type(c), c)
-
-    # filters_json = json.dumps(filters)
-    
-    # res =  supabase.table("search_results").insert({
-    # "user_id": user_id,
-    # "search_id": search_id_uuid,
-    # "filters": filters_json,
-    # "valid_streamers": len(datas["username"]),
-    # "total_streamers": len(streamers),
-    # "file_path": file_name
-    # }).execute()
-
-    # print(res)
     
     download_url = f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
 
@@ -519,5 +436,14 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     "Stage": 5,"Done": True, "search_id": search_id_uuid,
       "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
     })  
-    time.sleep(0.600)
+    time.sleep(2)
     remove_progress(user_id)
+    try:
+        os.remove(file_name)
+        print(f"File '{file_name}' deleted successfully.")
+    except FileNotFoundError:
+        print(f"Error: File '{file_name}' not found.")
+    except IsADirectoryError:
+        print(f"Error: '{file_name}' is a directory, not a file.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
