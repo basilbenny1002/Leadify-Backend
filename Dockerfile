@@ -12,7 +12,7 @@ RUN apt-get update \
 # 2) Create & activate venv so pip can install freely
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" 
-   
+
 # 3) Install Python deps
 COPY requirements.txt .
 RUN pip install --upgrade pip \
@@ -33,3 +33,4 @@ RUN npm install \
 WORKDIR /app
 EXPOSE 8000
 CMD ["uvicorn","main:app","--host=0.0.0.0","--port=8000"]
+

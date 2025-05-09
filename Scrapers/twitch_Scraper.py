@@ -237,7 +237,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             return
         socials = response.get('links', [])
         mail = response.get('emails', [])
-        mails_found.update(mail)
+        if mail:
+            mails_found.update(mail)
     except Exception as e:
         logging.error(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}",)
         print(f"Error scraping Twitch about for {streamer['user_name']}: {str(e)}", flush=True)
