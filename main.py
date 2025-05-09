@@ -12,6 +12,8 @@ from fastapi import FastAPI, Query
 from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
 import io
+from lemon_squeezy_webhooks import router as webhook_router
+
 try:
     sys.stdout.reconfigure(encoding='utf-8')
 except:
@@ -28,7 +30,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"],
     allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
-app.include_router(webhook_router) '
+app.include_router(webhook_router)
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
