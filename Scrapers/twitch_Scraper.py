@@ -204,15 +204,15 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             'viewer_count': streamer['viewer_count'],
             'language': streamer['language'],
             'game_name': streamer['game_name'],
-            'discord': "Couldn't find discord",
-            'youtube': "Couldn't find youtube",
+            'discord': "",
+            'youtube': "",
             'subscriber_count': 0,
-            'gmail': "Couldn't find a valid mail",
-            "instagram": "Couldn't find an instagram account",
-            "twitter": "Couldn't find a Twitter account",
-            "facebook":"Couldn't find a facebook account",
-            "tiktok": "Couldn't find a tiktok account",
-            "linkedin": "Couldn't find a linkedin account"
+            'gmail': "",
+            "instagram": "",
+            "twitter": "",
+            "facebook":"",
+            "tiktok": "",
+            "linkedin": ""
         }
         #results_queue.put(result)
     except Exception as e:
@@ -254,7 +254,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         return
 
     if not socials:
-        result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else "Couldn't find a valid mail"
+        result['gmail'] = ", ".join(str(element).lower() for element in mails_found) if mails_found else ""
         with lock:
             end_time = time.time()
             update_progress(user_id=user_id, values={"Completed": active_scrapers[user_id]["Completed"] + 1})
@@ -295,7 +295,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     # Process YouTube info
     if not yt_links:
         result.update({
-            'youtube': "Couldn't find youtube",
+            'youtube': "",
             'subscriber_count': 0
         })
     else:
@@ -308,7 +308,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             result['subscriber_count'] = 0
 
     # Process Discord info
-    result['discord'] = dc_links[0] if dc_links else "Couldn't find discord"
+    result['discord'] = dc_links[0] if dc_links else ""
 
     # Process Twitter and additional email scraping
     if twitter_links:
@@ -334,10 +334,10 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Process email validation
     if not mails_found:
-        result['gmail'] = "Couldn't find a valid gmail"
+        result['gmail'] = ""
     else:
         valid_mails = [i for i in set(mails_found) if is_valid_email(i)]
-        result['gmail'] = ",".join(valid_mails) if valid_mails else "Couldn't find a valid mail"
+        result['gmail'] = ",".join(valid_mails) if valid_mails else ""
     end_time = time.time()
     # Once processing is done]
     with lock:
