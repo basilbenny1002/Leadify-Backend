@@ -1,6 +1,6 @@
 from typing import Union
 from pydantic import BaseModel
-from fastapi import FastAPI
+from fastapi import Body, FastAPI, HTTPException
 import threading
 import Scrapers
 import sys
@@ -13,6 +13,7 @@ from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
 import io
 from lemon_squeezy_webhooks import router as webhook_router
+from superbase_functions import save_streamers_to_supabase, fetch_saved_streamers
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -38,6 +39,27 @@ def read_root():
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
+
+@app.post("/streamers/save")
+def save_scraped_streamers(user_id: str, streamers: list[dict] = Body(...)):
+    print("Received streamers:", streamers[:2])
+    print("route hit")
+    try:
+        save_streamers_to_supabase(user_id, streamers)
+        return JSONResponse(status_code=200, content={"status": "saved"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    
+@app.get("/saved-streamers")
+def get_saved_streamers(user_id: str):
+    print('route hit')
+    print(user_id + '56')
+    try:
+        data = fetch_saved_streamers(user_id)
+        print(data)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def start_scraper(**kwargs):
     data = dict(kwargs)
