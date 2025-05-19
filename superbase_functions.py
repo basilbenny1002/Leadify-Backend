@@ -94,7 +94,6 @@ def save_streamers_to_supabase(user_id: str, streamers: list[dict]):
     print(f"Inserted: {inserted}, Skipped (duplicates): {skipped}")
 
 def fetch_saved_streamers(user_id: str):
-    print(user_id)
     response = (
         supabase
         .from_("twitch_streamers")
@@ -114,7 +113,6 @@ async def create_folder(user_id: str, name: str):
 
     folder_id = str(uuid.uuid4())
 
-    print("beforerere create folder")
     response = (
         supabase
         .from_("folders")
@@ -128,16 +126,12 @@ async def create_folder(user_id: str, name: str):
         .execute()
     )
 
-    print("create folderererrrrrrrrrr")
-    print(response)
-
     if not response.data:
         return {"error": response}
 
     return {"id": folder_id, "name": name}
 
 async def get_folders(user_id: str):
-    print(user_id)
     # Select folders along with a count of streamers per folder
     response = (
         supabase
@@ -158,13 +152,9 @@ async def get_folders(user_id: str):
         # optionally remove the nested twitch_streamers key if you don't want to send it
         folder.pop("twitch_streamers", None)
         folders.append(folder)
-
-    print(folders)
     return folders
 
 async def get_saved_streamers(user_id: str, folder_id: str):
-    print('route hit get saved streamers')
-    print(folder_id)
     response = None
     if folder_id == "all":
         response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).execute()
@@ -173,17 +163,17 @@ async def get_saved_streamers(user_id: str, folder_id: str):
     else:
         response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("folder_id", folder_id).execute()
 
-    print(response)
 
     if not response.data:
-        print(response)
         return []
     return response.data
 
 
 async def add_streamer_to_folder(user_id: str, streamer_id: str, folder_id: str):
+    print('function hit')
+    print(user_id, streamer_id, folder_id)
     response = (
-        await supabase
+        supabase
         .from_("twitch_streamers")
         .update({"folder_id": folder_id})
         .eq("id", streamer_id)
@@ -191,8 +181,10 @@ async def add_streamer_to_folder(user_id: str, streamer_id: str, folder_id: str)
         .execute()
     )
 
+    print(response)
+
     if not response.data:
-        return {"error": response.error.message}
+        return {"error": response}
     return {"success": True}
 
 async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):

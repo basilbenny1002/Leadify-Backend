@@ -28,6 +28,10 @@ except Exception as e:
 
 ANYT = AnyValue(choice=True)
 
+class FolderMove(BaseModel):
+    streamer_id: str
+    folder_id: str | None
+
 class FolderCreate(BaseModel):
     name: str
 
@@ -58,8 +62,6 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 @app.post("/streamers/save")
 def save_scraped_streamers(user_id: str, streamers: list[dict] = Body(...)):
-    print("Received streamers:", streamers[:2])
-    print("route hit")
     try:
         save_streamers_to_supabase(user_id, streamers)
         return JSONResponse(status_code=200, content={"status": "saved"})
@@ -79,27 +81,26 @@ def save_scraped_streamers(user_id: str, streamers: list[dict] = Body(...)):
     
 @app.post("/folders/create")
 async def create_folder_route(folder: FolderCreate, request: Request):
-    user_id = request.headers.get("x-user-id") 
-    print(user_id)
-  
+    user_id = request.headers.get("x-user-id")   
     result = await create_folder(user_id, folder.name)
     return JSONResponse(result)
 
 @app.get("/folders")
 async def get_folders_route(user_id: str = Query(...)):
-    print('folders route hit')
     folders = await get_folders(user_id)
     return folders
 
 @app.get("/streamers/{folder_id}")
 async def get_streamers_route(folder_id: str, user_id: str = Query(...)):
-    print('route hit streramerss')
     streamers = await get_saved_streamers(user_id, folder_id)
     return streamers
 
 @app.post("/streamers/move")
 async def move_streamer_to_folder(payload: FolderMove, request: Request):
+    print('route hit to move streamers')
     user_id = request.headers.get("x-user-id")
+    print(user_id)
+    print(payload)
     await add_streamer_to_folder(user_id, str(payload.streamer_id), str(payload.folder_id))
     return {"status": "moved"}
 
