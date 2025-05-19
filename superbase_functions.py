@@ -1,3 +1,5 @@
+import datetime
+import uuid
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -104,4 +106,105 @@ def fetch_saved_streamers(user_id: str):
         raise Exception(response.error.message)
     return response.data
 
-print(get_values("Test", "name", "age"))
+
+
+async def create_folder(user_id: str, name: str):
+    if name.lower() in ["all", "favourites"]:
+        return {"error": "Reserved folder name."}
+
+    folder_id = str(uuid.uuid4())
+
+    print("beforerere create folder")
+    response = (
+        supabase
+        .from_("folders")
+        .insert({
+            "id": folder_id,
+            "user_id": user_id,
+            "name": name,
+            "is_mandatory": False,
+            "created_at": datetime.datetime.now().isoformat()
+        })
+        .execute()
+    )
+
+    print("create folderererrrrrrrrrr")
+    print(response)
+
+    if not response.data:
+        return {"error": response}
+
+    return {"id": folder_id, "name": name}
+
+async def get_folders(user_id: str):
+    print(user_id)
+    # Select folders along with a count of streamers per folder
+    response = (
+        supabase
+        .from_("folders")
+        .select("*, twitch_streamers(count)")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not response.data:
+        return {"error": response.error.message}
+
+    # response.data is a list of folders with a nested `twitch_streamers` array containing count
+    # transform to add streamer_count easily
+    folders = []
+    for folder in response.data:
+        streamer_count = folder.get("twitch_streamers", [{}])[0].get("count", 0) if folder.get("twitch_streamers") else 0
+        folder["streamer_count"] = streamer_count
+        # optionally remove the nested twitch_streamers key if you don't want to send it
+        folder.pop("twitch_streamers", None)
+        folders.append(folder)
+
+    print(folders)
+    return folders
+
+async def get_saved_streamers(user_id: str, folder_id: str):
+    print('route hit get saved streamers')
+    print(folder_id)
+    response = None
+    if folder_id == "all":
+        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).execute()
+    elif folder_id == "favourites":
+        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("is_favourite", True).execute()
+    else:
+        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("folder_id", folder_id).execute()
+
+    print(response)
+
+    if not response.data:
+        print(response)
+        return []
+    return response.data
+
+
+async def add_streamer_to_folder(user_id: str, streamer_id: str, folder_id: str):
+    response = (
+        await supabase
+        .from_("twitch_streamers")
+        .update({"folder_id": folder_id})
+        .eq("id", streamer_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        return {"error": response.error.message}
+    return {"success": True}
+
+async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
+    response = (
+       supabase
+        .from_("twitch_streamers")
+        .update({"is_favourite": is_fav})
+        .eq("id", streamer_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        return {"error": response.error.message}
+    return {"success": True}
