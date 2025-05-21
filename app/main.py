@@ -3,18 +3,19 @@ from uuid import UUID
 from pydantic import BaseModel
 from fastapi import Body, FastAPI, HTTPException, Request
 import threading
-import Scrapers
+import scrapers
 import sys
-from Scrapers.twitch_Scraper import start
-from Scrapers.functions import AnyValue
+from scrapers.twitch_Scraper import start
+from scrapers.functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
-from Scrapers.functions import scrape_twitch_about
-from Scrapers.twitch_Scraper import active_scrapers
+from scrapers.functions import scrape_twitch_about
+from scrapers.twitch_Scraper import active_scrapers
 import io
-from lemon_squeezy_webhooks import router as webhook_router
-from superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from .request_handlers.lemon_squeezy_webhooks import router as webhook_router
+# from .re.lemon_squeezy_webhooks import router as webhook_router
+from .utils.superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
