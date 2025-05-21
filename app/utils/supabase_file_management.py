@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 import json
 import uuid
+from app.utils.functions import load_config
+load_config()
 
 
 def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):

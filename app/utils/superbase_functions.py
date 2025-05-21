@@ -7,11 +7,13 @@ import json
 from decimal import Decimal
 import decimal
 from supabase import create_client, Client
+from app.utils.functions import load_config
+load_config()
 
 psycopg2.extensions.register_adapter(decimal.Decimal, str)
 psycopg2.extensions.register_adapter(decimal.Decimal, str)
 
-load_dotenv()
+
 
 
 # Fetch variables

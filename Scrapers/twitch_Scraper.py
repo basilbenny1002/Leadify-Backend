@@ -2,11 +2,11 @@ import asyncio
 import json
 import os
 import pandas as pd
-from scrapers.functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
+from scrapers.scraper_functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
-from scrapers.functions import scrape_twitter
+from scrapers.scraper_functions import scrape_twitter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from scrapers.functions import convert_to_percentage, get_twitch_details
+from scrapers.scraper_functions import convert_to_percentage, get_twitch_details
 import logging
 import datetime
 import time
@@ -18,7 +18,7 @@ import uuid
 import os
 from app.utils.supabase_file_management import upload_csv 
 # from supabase_file_management import upload_csv 
-from scrapers.functions import AnyValue, classify
+from scrapers.scraper_functions import AnyValue, classify
 
 
 active_scrapers = {}

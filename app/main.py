@@ -5,17 +5,20 @@ from fastapi import Body, FastAPI, HTTPException, Request
 import threading
 import scrapers
 import sys
+from app.utils.functions import load_config
 from scrapers.twitch_Scraper import start
-from scrapers.functions import AnyValue
+from scrapers.scraper_functions import AnyValue
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
-from scrapers.functions import scrape_twitch_about
+from scrapers.scraper_functions import scrape_twitch_about
 from scrapers.twitch_Scraper import active_scrapers
 import io
 from .request_handlers.lemon_squeezy_webhooks import router as webhook_router
 # from .re.lemon_squeezy_webhooks import router as webhook_router
 from .utils.superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+load_config()
+
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
