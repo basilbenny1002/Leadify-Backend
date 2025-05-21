@@ -1,6 +1,7 @@
 from typing import Union
+from uuid import UUID
 from pydantic import BaseModel
-from fastapi import FastAPI
+from fastapi import Body, FastAPI, HTTPException, Request
 import threading
 import Scrapers
 import sys
@@ -13,6 +14,7 @@ from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
 import io
 from lemon_squeezy_webhooks import router as webhook_router
+from superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -26,10 +28,29 @@ except Exception as e:
 
 ANYT = AnyValue(choice=True)
 
+class FolderMove(BaseModel):
+    streamer_id: str
+    folder_id: str | None
+
+class FolderCreate(BaseModel):
+    name: str
+
+class FolderMove(BaseModel):
+    streamer_id: UUID
+    folder_id: UUID
+
+class FavouriteToggle(BaseModel):
+    streamer_id: UUID
+    is_favourite: bool
+    
 app = FastAPI()
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"],
-    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # or ["*"] for all, but not safe for prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(webhook_router)
 @app.get("/")
 def read_root():
@@ -38,6 +59,56 @@ def read_root():
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
+
+@app.post("/streamers/save")
+def save_scraped_streamers(user_id: str, streamers: list[dict] = Body(...)):
+    try:
+        save_streamers_to_supabase(user_id, streamers)
+        return JSONResponse(status_code=200, content={"status": "saved"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    
+# @app.get("/saved-streamers")
+# def get_saved_streamers(user_id: str):
+#     print('route hit')
+#     print(user_id + '56')
+#     try:
+#         data = fetch_saved_streamers(user_id)
+#         print(data)
+#         return data
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/folders/create")
+async def create_folder_route(folder: FolderCreate, request: Request):
+    user_id = request.headers.get("x-user-id")   
+    result = await create_folder(user_id, folder.name)
+    return JSONResponse(result)
+
+@app.get("/folders")
+async def get_folders_route(user_id: str = Query(...)):
+    folders = await get_folders(user_id)
+    return folders
+
+@app.get("/streamers/{folder_id}")
+async def get_streamers_route(folder_id: str, user_id: str = Query(...)):
+    streamers = await get_saved_streamers(user_id, folder_id)
+    return streamers
+
+@app.post("/streamers/move")
+async def move_streamer_to_folder(payload: FolderMove, request: Request):
+    print('route hit to move streamers')
+    user_id = request.headers.get("x-user-id")
+    print(user_id)
+    print(payload)
+    await add_streamer_to_folder(user_id, str(payload.streamer_id), str(payload.folder_id))
+    return {"status": "moved"}
+
+@app.post("/streamers/favourite")
+async def toggle_fav_route(payload: FavouriteToggle, request: Request):
+    user_id = request.headers.get("x-user-id")
+    await toggle_favourite(user_id, str(payload.streamer_id), payload.is_favourite)
+    return {"status": "updated"}
 
 def start_scraper(**kwargs):
     data = dict(kwargs)
