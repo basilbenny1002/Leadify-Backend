@@ -22,6 +22,9 @@ import time
 import functools
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 load_dotenv()
 class AnyValue:
@@ -110,6 +113,42 @@ def time_it(func):
         #print(f"{func.__name__} executed in {end_time - start_time:.6f} seconds")
         return result
     return wrapper
+
+def get_twitter_id(url: str):
+    pattern = r"(?:https?://)?(?:www\.)?(?:x\.com|twitter\.com)/([A-Za-z0-9_]{1,15})"
+    match = re.search(pattern, url)
+    return match.group(1)
+
+def scrape_twitter(url: str):
+    """
+    Scrapes about session for emails
+    :param url:
+    :return: list containing all found mails
+    """
+    id = get_twitter_id(url)
+    url = f"https://www.twitterviewer.com/{id}"
+    USER_AGENTS = [
+    # Chrome
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    # Firefox
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    # Edge
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+    # Safari macOS
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15",
+    # Safari iPhone
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Mobile/15E148 Safari/604.1",
+    ]
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS)
+    }
+    response = requests.get(url=url, headers=headers)
+    if response.status_code == 200:
+        text = response.text
+        mails = extract_emails(text)
+        return mails
+    else:
+        return
 
 
 
