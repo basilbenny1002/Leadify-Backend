@@ -198,5 +198,35 @@ async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
     )
 
     if not response.data:
-        return {"error": response.error.message}
+        return {"error": response}
     return {"success": True}
+
+async def delete_streamer_by_id(user_id: str, streamer_id: str):
+    response = (
+        supabase
+        .from_("twitch_streamers")
+        .delete()
+        .eq("id", streamer_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        raise Exception(response.error.message)
+
+    return {"status": "deleted"}
+
+async def delete_folder_by_id(user_id: str, folder_id: str):
+    response = (
+        supabase
+        .from_("folders")
+        .delete()
+        .eq("id", folder_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if response.error:
+        raise Exception(response.error.message)
+
+    return {"status": "deleted"}

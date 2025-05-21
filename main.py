@@ -14,7 +14,7 @@ from Scrapers.functions import scrape_twitch_about
 from Scrapers.twitch_Scraper import active_scrapers
 import io
 from lemon_squeezy_webhooks import router as webhook_router
-from superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from superbase_functions import add_streamer_to_folder, create_folder, delete_folder_by_id, delete_streamer_by_id, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -90,6 +90,18 @@ async def get_folders_route(user_id: str = Query(...)):
     folders = await get_folders(user_id)
     return folders
 
+@app.delete("/folders/{folder_id}")
+async def delete_folder(folder_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await delete_folder_by_id(user_id, folder_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/streamers/{folder_id}")
 async def get_streamers_route(folder_id: str, user_id: str = Query(...)):
     streamers = await get_saved_streamers(user_id, folder_id)
@@ -103,6 +115,18 @@ async def move_streamer_to_folder(payload: FolderMove, request: Request):
     print(payload)
     await add_streamer_to_folder(user_id, str(payload.streamer_id), str(payload.folder_id))
     return {"status": "moved"}
+
+@app.delete("/saved-streamers/{streamer_id}")
+async def delete_saved_streamer(streamer_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await delete_streamer_by_id(user_id, streamer_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/streamers/favourite")
 async def toggle_fav_route(payload: FavouriteToggle, request: Request):
