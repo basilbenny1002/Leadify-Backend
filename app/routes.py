@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Query
 from scrapers.scraper_functions import scrape_twitch_about
 from scrapers.twitch_Scraper import active_scrapers
+from app.utils.functions import category_to_id
 import io
 from .utils.superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 load_config()
@@ -85,7 +86,7 @@ def start_scraper(**kwargs):
     return data
 @router.get("/Twitch_scraper")
 def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None] = Query(default=None), language: Union[str, None] = Query(default=None), viewer_count: Union[str, None] = Query(default=None),  maximum_followers: Union[str, None] = Query(default=None)):
-    thread = threading.Thread(target=start,kwargs={"c":category, "user_id":user_id, "min_f":minimum_followers if minimum_followers else ANYT, "choice_l":language if language else ANYT, "min_viewer_c":viewer_count if viewer_count else ANYT, "max_f": maximum_followers if maximum_followers else ANYT})
+    thread = threading.Thread(target=start,kwargs={"c":category_to_id(category), "user_id":user_id, "min_f":minimum_followers if minimum_followers else ANYT, "choice_l":language if language else ANYT, "min_viewer_c":viewer_count if viewer_count else ANYT, "max_f": maximum_followers if maximum_followers else ANYT})
     thread.start()  
     data = {"Status": "Started"}
     return JSONResponse(status_code=200, content=data)
