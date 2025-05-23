@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from fastapi import Body, FastAPI, HTTPException, Request
 import threading
 import scrapers
+import json
 import sys
 from app.utils.functions import load_config
 from scrapers.twitch_Scraper import start
@@ -23,7 +24,7 @@ load_config()
 try:
     sys.stdout.reconfigure(encoding='utf-8')
 except:
-    print("Error: Unable to set stdout encoding to UTF-8. This may affect the display of non-ASCII characters.")
+    print("Error: Unable to set stdout encoding to UTF-8. This may affect the dixsplay of non-ASCII characters.", flush=True)
     pass
 try:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -127,11 +128,20 @@ def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None]
     return JSONResponse(status_code=200, content=data)
 
 @app.get("/Twitch_scraper/get_progress")
-
 def get_progress(user_id: str):
     # return JSONResponse(status_code=200, content={"Stage": Scrapers.twitch_Scraper.current_process, "Rate": Scrapers.twitch_Scraper.rate, "ETA": Scrapers.twitch_Scraper.remaining, "Streamers": Scrapers.twitch_Scraper.valid_streamers, "Completed": Scrapers.twitch_Scraper.completed, "Percentage": Scrapers.twitch_Scraper.percentage, "Total Streamers": Scrapers.twitch_Scraper.total_streamers, "Done": Scrapers.twitch_Scraper.done, "search_id": Scrapers.twitch_Scraper.search_id, "download_url": Scrapers.twitch_Scraper.download_url
     # })
     return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
+
+# @app.get("/twitch_scraper/get_category_data")
+# def get_categories(paid: bool):
+#     with open("Leadify-Backend\app\utils\datas\live_data.json", "r", encoding="utf-8") as f:
+#         data = json.load(f)
+#     return {i:(k if paid else "") for i, k in data}
+    
+
+
+
 class Item(BaseModel):
     name: str
     description: str = None
