@@ -18,14 +18,12 @@ from scrapers.scraper_functions import scrape_twitch_about
 from scrapers.twitch_Scraper import active_scrapers
 from app.utils.functions import category_to_id
 import io
-from .utils.superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from .utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, save_filter_to_supabase, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from typing import Optional
+
 load_config()
 
 ANYT = AnyValue(choice=True)
-
-class FolderMove(BaseModel):
-    streamer_id: str
-    folder_id: str | None
 
 class FolderCreate(BaseModel):
     name: str
@@ -37,6 +35,16 @@ class FolderMove(BaseModel):
 class FavouriteToggle(BaseModel):
     streamer_id: UUID
     is_favourite: bool
+
+class FilterSave(BaseModel):
+    name: str
+    language: Optional[str]
+    category: Optional[str]
+    min_followers: Optional[int]
+    max_followers: Optional[int]
+    min_viewers: Optional[int]
+    max_viewers: Optional[int]
+    
 
 router = APIRouter()
 
@@ -94,3 +102,55 @@ def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None]
 @router.get("/Twitch_scraper/get_progress")
 def get_progress(user_id: str):
     return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
+
+
+@router.post("/filters/save")
+async def save_filter_route(filter_data: FilterSave, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await save_filter_to_supabase(user_id, filter_data)
+        return JSONResponse(status_code=200, content={"status": "saved", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/filters/save")
+async def save_filter_route(filter_data: FilterSave, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await save_filter_to_supabase(user_id, filter_data)
+        return JSONResponse(status_code=200, content={"status": "saved", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/filters")
+async def get_filters_route(user_id: str = Query(...)):
+    try:
+        result = await get_saved_filters(user_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/filters/{filter_id}")
+async def delete_filter_route(filter_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await delete_saved_filter(user_id, filter_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# @app.get("/twitch_scraper/get_category_data")
+# def get_categories(paid: bool):
+#     with open("Leadify-Backend\app\utils\datas\live_data.json", "r", encoding="utf-8") as f:
+#         data = json.load(f)
+#     return {i:(k if paid else "") for i, k in data}
+    
