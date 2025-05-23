@@ -34,4 +34,3 @@ app.include_router(webhook_router)
 @app.get("/")
 def read_root():
     return {"Status": "Running"}
-
