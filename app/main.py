@@ -139,8 +139,8 @@ def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None]
 
 @app.get("/Twitch_scraper/get_progress")
 def get_progress(user_id: str):
-    return JSONResponse(status_code=200, content={"Stage": scrapers.twitch_Scraper.current_process, "Rate": scrapers.twitch_Scraper.rate, "ETA": scrapers.twitch_Scraper.remaining, "Streamers": scrapers.twitch_Scraper.valid_streamers, "Completed": scrapers.twitch_Scraper.completed, "Percentage": scrapers.twitch_Scraper.percentage, "Total Streamers": scrapers.twitch_Scraper.total_streamers, "Done": scrapers.twitch_Scraper.done, "search_id": scrapers.twitch_Scraper.search_id, "download_url": scrapers.twitch_Scraper.download_url
-    })
+    # return JSONResponse(status_code=200, content={"Stage": scrapers.twitch_Scraper.current_process, "Rate": scrapers.twitch_Scraper.rate, "ETA": scrapers.twitch_Scraper.remaining, "Streamers": scrapers.twitch_Scraper.valid_streamers, "Completed": scrapers.twitch_Scraper.completed, "Percentage": scrapers.twitch_Scraper.percentage, "Total Streamers": scrapers.twitch_Scraper.total_streamers, "Done": scrapers.twitch_Scraper.done, "search_id": scrapers.twitch_Scraper.search_id, "download_url": scrapers.twitch_Scraper.download_url
+    # })
     return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
 
 # @app.get("/twitch_scraper/get_category_data")
@@ -162,6 +162,18 @@ async def save_filter_route(filter_data: FilterSave, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/filters/save")
+async def save_filter_route(filter_data: FilterSave, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await save_filter_to_supabase(user_id, filter_data)
+        return JSONResponse(status_code=200, content={"status": "saved", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/filters")
 async def get_filters_route(user_id: str = Query(...)):
     try:
@@ -170,18 +182,6 @@ async def get_filters_route(user_id: str = Query(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/filters/{filter_id}")
-async def delete_filter_route(filter_id: str, request: Request):
-    user_id = request.headers.get("x-user-id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Missing user ID")
-
-    try:
-        result = await delete_saved_filter(user_id, filter_id)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
 @app.delete("/filters/{filter_id}")
 async def delete_filter_route(filter_id: str, request: Request):
     user_id = request.headers.get("x-user-id")

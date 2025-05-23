@@ -224,7 +224,8 @@ async def get_saved_filters(user_id: str):
     response = supabase.from_("saved_filters").select("*").eq("user_id", user_id).execute()
 
     if not response.data:
-        raise Exception(response)
+        print(response)
+        return response.data
     return response.data
 
 async def delete_saved_filter(user_id: str, filter_id: str):
