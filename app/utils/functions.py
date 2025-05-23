@@ -50,8 +50,7 @@ def load_config():
 def category_to_id(category: str):
     with open(r"Leadify-Backend\app\utils\datas\categories.json", "r", encoding="utf-8") as f:
         data = json.load(f)
-        return data[category]
+        return int(data[category])
                   
 if __name__ == "__main__":
-    load_config()
-    get_twitch_live_categories()
+    print(category_to_id("League of Legends"))
