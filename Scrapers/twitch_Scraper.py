@@ -44,7 +44,7 @@ ANYF = AnyValue(choice=False)
 
 lock = threading.Lock()
 
-supabase = create_client(os.getenv("NEXT_PUBLIC_SUPABASE_URL"), os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
+supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 
 logging.basicConfig(level=logging.INFO, filename="scraper.log", filemode="a",
