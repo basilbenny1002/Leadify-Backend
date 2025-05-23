@@ -53,6 +53,4 @@ def category_to_id(category: str):
         return int(data[category])
                   
 if __name__ == "__main__":
-    # load_config()
-    # get_twitch_live_categories()
     print(category_to_id("League of Legends"))
