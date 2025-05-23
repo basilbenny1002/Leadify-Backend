@@ -202,3 +202,34 @@ async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
     if not response.data:
         return {"error": response.error.message}
     return {"success": True}
+
+
+async def save_filter_to_supabase(user_id: str, data):
+    response = supabase.from_("saved_filters").insert({
+        "user_id": user_id,
+        "name": data.name,
+        "language": data.language,
+        "category": data.category,
+        "min_followers": data.min_followers,
+        "max_followers": data.max_followers,
+        "min_viewers": data.min_viewers,
+        "max_viewers": data.max_viewers
+    }).execute()
+
+    if not response.data:
+        raise Exception(response)
+    return response.data
+
+async def get_saved_filters(user_id: str):
+    response = supabase.from_("saved_filters").select("*").eq("user_id", user_id).execute()
+
+    if not response.data:
+        raise Exception(response)
+    return response.data
+
+async def delete_saved_filter(user_id: str, filter_id: str):
+    response = supabase.from_("saved_filters").delete().eq("id", filter_id).eq("user_id", user_id).execute()
+
+    if not response.data:
+        raise Exception(response)
+    return {"status": "deleted"}

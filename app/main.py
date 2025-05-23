@@ -17,8 +17,9 @@ from scrapers.twitch_Scraper import active_scrapers
 import io
 from .request_handlers.lemon_squeezy_webhooks import router as webhook_router
 # from .re.lemon_squeezy_webhooks import router as webhook_router
-from .utils.superbase_functions import add_streamer_to_folder, create_folder, get_folders, get_saved_streamers, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from .utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, save_filter_to_supabase, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 load_config()
+from typing import Optional
 
 
 try:
@@ -47,6 +48,15 @@ class FolderMove(BaseModel):
 class FavouriteToggle(BaseModel):
     streamer_id: UUID
     is_favourite: bool
+
+class FilterSave(BaseModel):
+    name: str
+    language: Optional[str]
+    category: Optional[str]
+    min_followers: Optional[int]
+    max_followers: Optional[int]
+    min_viewers: Optional[int]
+    max_viewers: Optional[int]
     
 app = FastAPI()
 app.add_middleware(
@@ -129,8 +139,8 @@ def run_Scraper(category: str, user_id: str, minimum_followers: Union[int, None]
 
 @app.get("/Twitch_scraper/get_progress")
 def get_progress(user_id: str):
-    # return JSONResponse(status_code=200, content={"Stage": Scrapers.twitch_Scraper.current_process, "Rate": Scrapers.twitch_Scraper.rate, "ETA": Scrapers.twitch_Scraper.remaining, "Streamers": Scrapers.twitch_Scraper.valid_streamers, "Completed": Scrapers.twitch_Scraper.completed, "Percentage": Scrapers.twitch_Scraper.percentage, "Total Streamers": Scrapers.twitch_Scraper.total_streamers, "Done": Scrapers.twitch_Scraper.done, "search_id": Scrapers.twitch_Scraper.search_id, "download_url": Scrapers.twitch_Scraper.download_url
-    # })
+    return JSONResponse(status_code=200, content={"Stage": scrapers.twitch_Scraper.current_process, "Rate": scrapers.twitch_Scraper.rate, "ETA": scrapers.twitch_Scraper.remaining, "Streamers": scrapers.twitch_Scraper.valid_streamers, "Completed": scrapers.twitch_Scraper.completed, "Percentage": scrapers.twitch_Scraper.percentage, "Total Streamers": scrapers.twitch_Scraper.total_streamers, "Done": scrapers.twitch_Scraper.done, "search_id": scrapers.twitch_Scraper.search_id, "download_url": scrapers.twitch_Scraper.download_url
+    })
     return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
 
 # @app.get("/twitch_scraper/get_category_data")
@@ -140,7 +150,49 @@ def get_progress(user_id: str):
 #     return {i:(k if paid else "") for i, k in data}
     
 
+@app.post("/filters/save")
+async def save_filter_route(filter_data: FilterSave, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
 
+    try:
+        result = await save_filter_to_supabase(user_id, filter_data)
+        return JSONResponse(status_code=200, content={"status": "saved", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/filters")
+async def get_filters_route(user_id: str = Query(...)):
+    try:
+        result = await get_saved_filters(user_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/filters/{filter_id}")
+async def delete_filter_route(filter_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await delete_saved_filter(user_id, filter_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.delete("/filters/{filter_id}")
+async def delete_filter_route(filter_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        result = await delete_saved_filter(user_id, filter_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 class Item(BaseModel):
     name: str
