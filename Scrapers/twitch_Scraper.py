@@ -219,9 +219,9 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             linkedin_links.append(social_links)
         if "facebook" in str(social_links).lower():
             facebook_links.append(social_links)
-        if "discord" in str(social_links).lower():
+        if "discord.gg" in str(social_links).lower():
             dc_links.append(social_links)
-        if "x" in str(social_links).lower() or "twitter" in str(social_links).lower():
+        if "x.com" in str(social_links).lower() or "twitter.com" in str(social_links).lower():
             twitter_links.append(social_links)
         if "instagram" in str(social_links).lower():
             instagram_links.append(social_links)
