@@ -5,10 +5,12 @@ from app.utils.functions import load_config
 from fastapi.middleware.cors import CORSMiddleware
 import io
 from .request_handlers.lemon_squeezy_webhooks import router as webhook_router
-from app.routes import router as main_router
+# from app.routes import router as main_router
+from app.routes.supabase_routes import router as supabase_router
+from app.routes.twitch_Scraper_routes import router as twitch_scraper_router
+
 
 load_config()
-
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -27,8 +29,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(main_router)
+# app.include_router(main_router)
 app.include_router(webhook_router)
+app.include_router(supabase_router)
+app.include_router(twitch_scraper_router)
 
 
 @app.get("/")
