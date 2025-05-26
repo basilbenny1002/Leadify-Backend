@@ -48,7 +48,7 @@ def load_config():
     load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent / '.env')
 
 def category_to_id(category: str):
-    with open(r"Leadify-Backend\app\utils\datas\categories.json", "r", encoding="utf-8") as f:
+    with open(r".\app\utils\datas\categories.json", "r", encoding="utf-8") as f:
         data = json.load(f)
         return int(data[category])
                   

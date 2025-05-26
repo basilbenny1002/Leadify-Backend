@@ -1,11 +1,8 @@
-import asyncio
-import json
 import os
 import pandas as pd
 from scrapers.scraper_functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from scrapers.scraper_functions import scrape_twitter
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from scrapers.scraper_functions import convert_to_percentage, get_twitch_details
 import logging
 import datetime
@@ -16,8 +13,7 @@ import queue
 from supabase import create_client
 import uuid
 import os
-from app.utils.supabase_file_management import upload_csv 
-# from supabase_file_management import upload_csv 
+from app.utils.superbase_functions import upload_csv 
 from scrapers.scraper_functions import AnyValue, classify
 
 
@@ -318,8 +314,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     streamers = []
     initial(user_id=user_id, streamers=streamers, min_followers=min_f, max_followers=max_f, choice_l=choice_l, min_viewer_count=min_viewer_c, game_id=c)  # Initialize the variables and get the list of streamers
-
-    current_process = 3
+    
     update_progress(user_id, values={
     "Stage": 3, "Rate": 0, "ETA": 0, 
     "Completed": 0, "Percentage": 0})
