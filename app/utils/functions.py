@@ -3,7 +3,8 @@ from pathlib import Path
 import json 
 import os
 import requests
-
+from dotenv import load_dotenv
+load_dotenv()
 def get_twitch_live_categories(max_pages=696969): #Funny number
     headers = {
         'Client-ID': os.getenv('client_id'),
@@ -38,10 +39,11 @@ def get_twitch_live_categories(max_pages=696969): #Funny number
             pages_fetched += 1
         else:
             break
-
+    sorted_category_viewers = dict(sorted(category_viewers.items(), key=lambda item: item[1], reverse=True))
     # return category_viewers
     with open(r"Leadify-Backend\app\utils\datas\live_data.json", "w", encoding="utf-8") as f:
-        json.dumps(category_viewers,f, indent=2)
+        # print(category_viewers[50:])
+        json.dump(sorted_category_viewers,f, indent=2)
 
 
 def load_config():
@@ -53,4 +55,5 @@ def category_to_id(category: str):
         return int(data[category])
                   
 if __name__ == "__main__":
-    print(category_to_id("League of Legends"))
+    # print(category_to_id("League of Legends"))
+    get_twitch_live_categories()

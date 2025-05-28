@@ -7,6 +7,7 @@ from scrapers.twitch_Scraper import start
 from scrapers.scraper_functions import AnyValue
 from fastapi.responses import JSONResponse
 import time
+import json
 from scrapers.twitch_Scraper import active_scrapers
 from app.utils.functions import category_to_id
 
@@ -38,3 +39,16 @@ def run_Scraper(details: scrape_details):
 @router.get("/Twitch_scraper/get_progress")
 def get_progress(user_id: str):
     return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if k != 'progress_data'})
+
+
+@router.get("/twitch/categories")
+def get_categories(eligible: bool):
+    with open(r".\app\utils\datas\categories.json", 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        return JSONResponse(status_code=200, content={i:("" if not eligible else data[i])for i in data})
+    
+@router.get("/twitch/live_categories")
+def get_languages():
+    with open(r".\app\utils\datas\live_categories.json", 'r', encoding='utf-8') as file:
+        data = json.loads(file)
+        return JSONResponse(status_code=200, content=data)
