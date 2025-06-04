@@ -27,6 +27,24 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):
+    with open(file_name, "rb") as f:
+        res = supabase.storage.from_("results").upload(file_name, f)
+        print(res)
+    if not res.path:
+        raise Exception(f"CSV upload failed: {res}")
+    filters_json = json.dumps(filters)
+    
+    res =  supabase.table("search_results").insert({ 
+    "user_id": user_id,
+    "search_id": search_id_uuid,
+    "filters": filters_json,
+    "valid_streamers": valid,   
+    "total_streamers": total,
+    "file_path": file_name
+    }).execute()
+    print(res)
+
 
 def get_values(table_name: str, *column_names: str, condition=None):
     query = f"SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}"

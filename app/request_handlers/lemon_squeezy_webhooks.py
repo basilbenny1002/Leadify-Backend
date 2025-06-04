@@ -5,6 +5,8 @@ import hashlib
 import os
 import httpx
 from supabase import create_client, Client
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter()
 

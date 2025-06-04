@@ -1,12 +1,9 @@
-import asyncio
-import json
 import os
 import pandas as pd
 from scrapers.scraper_functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from scrapers.scraper_functions import scrape_twitter
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from scrapers.scraper_functions import convert_to_percentage, get_twitch_details
+from scrapers.scraper_functions import convert_to_percentage, get_twitch_details, format_time
 import logging
 import datetime
 import time
@@ -16,14 +13,13 @@ import queue
 from supabase import create_client
 import uuid
 import os
-from app.utils.supabase_file_management import upload_csv 
-# from supabase_file_management import upload_csv 
+from app.utils.superbase_functions import upload_csv 
 from scrapers.scraper_functions import AnyValue, classify
 
 
 active_scrapers = {}
 data_template = {
-    "Stage": 0, "Rate":0 , "ETA": 0, "Streamers":0,
+    "Stage": 0, "Rate":0 , "ETA": format_time(0), "Streamers":0,
     "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": "", "progress_data":[]
 }
@@ -67,7 +63,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
     client_id = os.getenv("client_id")  
 
     update_progress(user_id, values={
-    "Stage": 1, "Rate": 0, "ETA": 0, "Streamers": 0,
+    "Stage": 1, "Rate": 0, "ETA": format_time(0), "Streamers": 0,
     "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
     "Done": False, "search_id": "", "download_url": ""
     })  
@@ -80,7 +76,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
         update_progress(user_id, values={
-        "Stage": 2, "Rate": 0, "ETA": 0, "Streamers": 0,
+        "Stage": 2, "Rate": 0, "ETA": format_time(0), "Streamers": 0,
         "Completed": 0, "Percentage": 0, "Total_Streamers": len(streams), 
         "Done": False, "search_id": "", "download_url": ""
         }) 
@@ -118,7 +114,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
                 })
             percentage = convert_to_percentage(i, len(streams))
             update_progress(user_id, values={
-        "Stage": 2, "Rate": stage_2_rate, "ETA": stage_2_remaining, "Streamers": valid_streamers,
+        "Stage": 2, "Rate": stage_2_rate, "ETA": format_time(int(stage_2_remaining)), "Streamers": valid_streamers,
         "Completed": 0, "Percentage": percentage, 
             }) 
 
@@ -175,7 +171,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
                 update_progress(user_id=user_id, values={"Percentage": convert_to_percentage(active_scrapers[user_id]["Completed"], len(streamers))})
                 active_scrapers[user_id]["progress_data"].append(end_time - start_time)
                 active_scrapers[user_id]["Rate"] = sum(active_scrapers[user_id]["progress_data"]) / len(active_scrapers[user_id]["progress_data"])
-                active_scrapers[user_id]["ETA"] = (len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"]
+                active_scrapers[user_id]["ETA"] = format_time((len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"])
             
             results_queue.put(result)
             return
@@ -192,7 +188,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             update_progress(user_id=user_id, values={"Percentage": convert_to_percentage(active_scrapers[user_id]["Completed"], len(streamers))})
             active_scrapers[user_id]["progress_data"].append(end_time - start_time)
             active_scrapers[user_id]["Rate"] = sum(active_scrapers[user_id]["progress_data"]) / len(active_scrapers[user_id]["progress_data"])
-            active_scrapers[user_id]["ETA"] = (len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"]
+            active_scrapers[user_id]["ETA"] = format_time((len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"])
         
         results_queue.put(result)
         return
@@ -205,7 +201,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             update_progress(user_id=user_id, values={"Percentage": convert_to_percentage(active_scrapers[user_id]["Completed"], len(streamers))})
             active_scrapers[user_id]["progress_data"].append(end_time - start_time)
             active_scrapers[user_id]["Rate"] = sum(active_scrapers[user_id]["progress_data"]) / len(active_scrapers[user_id]["progress_data"])
-            active_scrapers[user_id]["ETA"] = (len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"]
+            active_scrapers[user_id]["ETA"] = format_time((len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"])
         results_queue.put(result)
         return
 
@@ -219,9 +215,9 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
             linkedin_links.append(social_links)
         if "facebook" in str(social_links).lower():
             facebook_links.append(social_links)
-        if "discord" in str(social_links).lower():
+        if "discord.gg" in str(social_links).lower():
             dc_links.append(social_links)
-        if "x" in str(social_links).lower() or "twitter" in str(social_links).lower():
+        if "x.com" in str(social_links).lower() or "twitter.com" in str(social_links).lower():
             twitter_links.append(social_links)
         if "instagram" in str(social_links).lower():
             instagram_links.append(social_links)
@@ -296,7 +292,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
         update_progress(user_id=user_id, values={"Percentage": convert_to_percentage(active_scrapers[user_id]["Completed"], len(streamers))})
         active_scrapers[user_id]["progress_data"].append(end_time - start_time)
         active_scrapers[user_id]["Rate"] = sum(active_scrapers[user_id]["progress_data"]) / len(active_scrapers[user_id]["progress_data"])
-        active_scrapers[user_id]["ETA"] = (len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"]
+        active_scrapers[user_id]["ETA"] = format_time((len(streamers) - active_scrapers[user_id]["Completed"]) * active_scrapers[user_id]["Rate"])
     results_queue.put(result)
 
     #TODO Uncomment the following if doing multi-threading
@@ -318,10 +314,9 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     streamers = []
     initial(user_id=user_id, streamers=streamers, min_followers=min_f, max_followers=max_f, choice_l=choice_l, min_viewer_count=min_viewer_c, game_id=c)  # Initialize the variables and get the list of streamers
-
-    current_process = 3
+    
     update_progress(user_id, values={
-    "Stage": 3, "Rate": 0, "ETA": 0, 
+    "Stage": 3, "Rate": 0, "ETA": format_time(0), 
     "Completed": 0, "Percentage": 0})
 
     threads = []
@@ -371,9 +366,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         "tiktok": [],
         "linkedin": [] 
     }
-    current_process = 4
     update_progress(user_id, values={
-    "Stage": 4, "Rate": 0, "ETA": 0})
+    "Stage": 4, "Rate": 0, "ETA": format_time(0)})
 
     while not results_queue.empty():
         result = results_queue.get()
@@ -409,6 +403,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     "Stage": 5,"Done": True, "search_id": search_id_uuid,
       "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
     })  
-    time.sleep(0.800)
+    time.sleep(10)
     os.remove(file_name)
     remove_progress(user_id)

@@ -46,6 +46,11 @@ class AnyValue:
     def __ge__(self, other):
         return self.value
 
+def format_time(seconds: int):
+    minutes = seconds // 60
+    s = seconds % 60
+    return f"{minutes:02}:{s:02}"
+
 
 def convert_to_percentage(value: int, max_value: int) -> int:
     """
@@ -597,4 +602,5 @@ def get_twitch_details(channel_name, channel_id):
 
                
 if __name__ == "__main__":
-    print(get_twitch_details("notexxdval", "183489909"))
+    # print(get_twitch_details("notexxdval", "183489909"))
+    print(format_time(60))
