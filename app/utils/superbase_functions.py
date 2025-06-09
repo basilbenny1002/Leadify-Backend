@@ -1,5 +1,7 @@
 import datetime
 import uuid
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -7,6 +9,7 @@ import json
 from decimal import Decimal
 import decimal
 from supabase import create_client, Client
+from app.utils.billing_functions import add_credits_to_user
 from app.utils.functions import load_config
 load_config()
 
@@ -252,3 +255,12 @@ async def delete_saved_filter(user_id: str, filter_id: str):
     if not response.data:
         raise Exception(response)
     return {"status": "deleted"}
+
+async def initialize_user_onSignup(user_id: str):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+
+    # Free plan default setup
+    FREE_CREDITS = 25
+
+    add_credits_to_user(user_id, FREE_CREDITS, "Signup Credits")
