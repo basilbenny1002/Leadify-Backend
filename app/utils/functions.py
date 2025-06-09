@@ -8,7 +8,7 @@ load_dotenv()
 def get_twitch_live_categories(max_pages=696969): #Funny number
     headers = {
         'Client-ID': os.getenv('client_id'),
-        'Authorization': f'Bearer {os.getenv('access_token')}'
+        'Authorization': f"Bearer {os.getenv('access_token')}"
     }
 
     url = 'https://api.twitch.tv/helix/streams'
