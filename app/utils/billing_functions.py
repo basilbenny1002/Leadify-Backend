@@ -37,7 +37,7 @@ async def add_credits_to_user(
             raise ValueError(f"No credit mapping found for variant ID {variant_id}.")
 
     # Atomic credit update
-    update_response = supabase.table("users").update({
+    update_response = supabase.from_("users").update({
         "credits": f"credits + {credits}"
     }).eq("id", user_id).execute()
 
@@ -46,7 +46,7 @@ async def add_credits_to_user(
         raise HTTPException(500, detail="Failed to update credits.")
 
     # Log the credit transaction
-    insert_response = supabase.table("credit_transactions").insert({
+    insert_response = supabase.from_("credit_transactions").insert({
         "user_id": user_id,
         "amount": credits,
         "action": reason,
