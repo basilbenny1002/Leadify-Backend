@@ -29,6 +29,10 @@ async def add_credits_to_user(
     variant_id: Optional[int] = None,
     credit_type: str = "topup"):
     # Auto resolve credits from variant_id if credits not manually passed
+    print(credits)
+    print(variant_id)
+    print(reason)
+    print(credit_type)
     if credits is None:
         if variant_id is None:
             raise ValueError("Either 'credits' or 'variant_id' must be provided.")
@@ -40,6 +44,8 @@ async def add_credits_to_user(
     update_response = supabase.from_("users").update({
         "credits": f"credits + {credits}"
     }).eq("id", user_id).execute()
+
+    print(update_response)
 
     if update_response.status_code >= 400:
         print(update_response.error)
@@ -54,6 +60,8 @@ async def add_credits_to_user(
         "variant_id": variant_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }).execute()
+
+    print(insert_response)
 
     if insert_response.status_code >= 400:
         print(insert_response.error)
@@ -74,7 +82,7 @@ async def process_order_event(payload: str, user_id: dict):
     print(variant_id)
 
     # Add credits based on the credit pack variant
-    await add_credits_to_user(user_id, variant_id,"Credit Pack Purchase", "topup")
+    await add_credits_to_user(user_id=user_id, variant_id=variant_id,reason="Credit Pack Purchase", credit_type="topup")
 
     # # Optional: Store order info
     # supabase.table("orders").insert({
