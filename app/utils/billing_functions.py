@@ -40,6 +40,7 @@ async def add_credits_to_user(
         if credits is None:
             raise ValueError(f"No credit mapping found for variant ID {variant_id}.")
 
+
     # Atomic credit update
 
     user_response = supabase.from_("users").select("credits").eq("id", user_id).single().execute()
@@ -51,7 +52,9 @@ async def add_credits_to_user(
     current_credits = user_response.data["credits"] or 0
 
     new_credits = current_credits + credits 
-
+    print(current_credits)
+    print(credits)
+    print(new_credits)
     update_response = supabase.from_("users").update({
         "credits": new_credits
     }).eq("id", user_id).execute()
@@ -72,7 +75,6 @@ async def add_credits_to_user(
         "amount": credits,
         "action": reason,
         "type": credit_type,
-        "variant_id": variant_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }).execute()
 
