@@ -57,7 +57,7 @@ async def handle_lemon_webhook(
     print(event_name)
     if event_name.startswith("subscription_"):
         await process_subscription_event(event_name, payload, user_id)
-    elif event_name == "order_paid":
+    elif event_name == "order_created":
         await process_order_event(payload, user_id)
     return {"status": "success"}
 
