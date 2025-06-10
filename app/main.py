@@ -12,15 +12,15 @@ from app.routes.twitch_Scraper_routes import router as twitch_scraper_router
 
 load_config()
 
-try:
-    sys.stdout.reconfigure(encoding='utf-8')
-except:
-    print("Error: Unable to set stdout encoding to UTF-8. This may affect the dixsplay of non-ASCII characters.", flush=True)
-    pass
-try:
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-except Exception as e:
-    print("Could not reconfigure stdout encoding:", e)    
+# try:
+#     sys.stdout.reconfigure(encoding='utf-8')
+# except:
+#     print("Error: Unable to set stdout encoding to UTF-8. This may affect the dixsplay of non-ASCII characters.", flush=True)
+#     pass
+# try:
+    # sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# except Exception as e:
+#     print("Could not reconfigure stdout encoding:", e)    
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,

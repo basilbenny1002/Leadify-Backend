@@ -24,7 +24,7 @@ from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 load_dotenv()
 class AnyValue:
