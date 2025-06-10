@@ -80,7 +80,7 @@ async def add_credits_to_user(
 
     print(insert_response)
 
-    if insert_response.status_code >= 400:
+    if not insert_response:
         print(insert_response.error)
         raise HTTPException(500, detail="Failed to log credit transaction.")
 
@@ -90,11 +90,8 @@ async def process_order_event(payload: str, user_id: dict):
     data = payload.get("data", {})
     attributes = data.get("attributes", {})
     variant_id = attributes.get("first_order_item", {}).get("variant_id")
-    variant_name = attributes.get("first_order_item", {}).get("variant_name", "Unknown Pack")
+    # variant_name = attributes.get("first_order_item", {}).get("variant_name", "Unknown Pack")
     order_id = data.get("id")
-    paid_at = attributes.get("paid_at")
-    total = attributes.get("total")
-    currency = attributes.get("currency")
 
     print(variant_id)
 
