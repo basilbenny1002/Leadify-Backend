@@ -5,8 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel
 from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
-from scrapers.twitch_Scraper import start
-from scrapers.scraper_functions import AnyValue
 from fastapi.responses import JSONResponse
 from fastapi import Query
 from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
@@ -14,7 +12,7 @@ from typing import Optional
 
 load_config()
 
-ANYT = AnyValue(choice=True)
+
 
 class FolderCreate(BaseModel):
     name: str
