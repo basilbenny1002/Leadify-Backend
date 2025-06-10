@@ -38,6 +38,8 @@ async def handle_lemon_webhook(
 ):
     raw_body = await request.body()
 
+    print(raw_body)
+
     if not x_signature or not verify_signature(raw_body, x_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -46,9 +48,13 @@ async def handle_lemon_webhook(
     custom_data = payload.get("meta", {}).get("custom_data", {})
     user_id = custom_data.get("user_id")
 
+    print(payload)
+
+    print(user_id)
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user ID")
 
+    print(event_name)
     if event_name.startswith("subscription_"):
         await process_subscription_event(event_name, payload, user_id)
     elif event_name == "order_paid":
