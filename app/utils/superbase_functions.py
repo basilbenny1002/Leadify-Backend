@@ -263,4 +263,4 @@ async def initialize_user_onSignup(user_id: str):
     # Free plan default setup
     FREE_CREDITS = 25
 
-    add_credits_to_user(user_id, FREE_CREDITS, "Signup Credits")
+    add_credits_to_user(user_id,"Signup Bonus", FREE_CREDITS, "bonus")

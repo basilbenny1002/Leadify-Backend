@@ -104,7 +104,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         print("Subscription created by", user_id)
 
         # Add credits on new subscription
-        await add_credits_to_user(user_id, variant_name, "subscription_created")
+        await add_credits_to_user(user_id, variant_id,"Subscription Monthly Renewal", "subscription")
 
     elif event_name == "subscription_updated":
         supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()

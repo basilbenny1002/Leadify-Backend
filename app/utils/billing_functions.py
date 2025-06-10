@@ -1,26 +1,42 @@
 import os
+from typing import Optional
 from fastapi import HTTPException
 from supabase import create_client, Client
 from datetime import datetime, timezone
 
-# Map LemonSqueezy variant IDs or plan names to credits based on your Leadify Pricing Model
-PLAN_DEFAULT_CREDITS = {
-    "free": 25,
-    "basic": 150,
-    "pro": 500,
+# Credit mapping based on LemonSqueezy variant_id
+VARIANT_CREDIT_MAP = {
+    # Top-up Packs
+    838117: 100,   # Starter
+    838118: 500,   # Growth
+    838119: 1000,  # Scale
+    838121: 5000,  # Power
+
+    # Subscriptions
+    783425: 150,   # Basic Monthly
+    783451: 150,   # Basic Yearly
+    783455: 500,   # Pro Monthly
+    783457: 500,   # Pro Yearly
 }
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-async def add_credits_to_user(user_id: str, plan_name: str, reason: str):
-    credits = PLAN_DEFAULT_CREDITS.get(plan_name.lower())
+async def add_credits_to_user(
+    user_id: str,
+    reason: str,
+    credits: Optional[int] = None,
+    variant_id: Optional[int] = None,
+    credit_type: str = "topup"):
+    # Auto resolve credits from variant_id if credits not manually passed
     if credits is None:
-        print(f"No credit mapping for plan {plan_name}")
-        return
+        if variant_id is None:
+            raise ValueError("Either 'credits' or 'variant_id' must be provided.")
+        credits = VARIANT_CREDIT_MAP.get(variant_id)
+        if credits is None:
+            raise ValueError(f"No credit mapping found for variant ID {variant_id}.")
 
-
-    # Add credits atomically (assuming supabase client supports raw SQL update or equivalent)
+    # Atomic credit update
     update_response = supabase.table("users").update({
         "credits": f"credits + {credits}"
     }).eq("id", user_id).execute()
@@ -34,6 +50,8 @@ async def add_credits_to_user(user_id: str, plan_name: str, reason: str):
         "user_id": user_id,
         "amount": credits,
         "action": reason,
+        "type": credit_type,
+        "variant_id": variant_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }).execute()
 
@@ -41,7 +59,7 @@ async def add_credits_to_user(user_id: str, plan_name: str, reason: str):
         print(insert_response.error)
         raise HTTPException(500, detail="Failed to log credit transaction.")
 
-    print(f"Added {credits} credits to user {user_id} for {reason}.")
+    print(f"✅ Added {credits} credits to user {user_id} | Reason: {reason} | Type: {credit_type}")
 
 async def process_order_event(payload: str, user_id: dict):
     data = payload.get("data", {})
@@ -53,18 +71,20 @@ async def process_order_event(payload: str, user_id: dict):
     total = attributes.get("total")
     currency = attributes.get("currency")
 
-    # Add credits based on the credit pack variant
-    await add_credits_to_user(user_id, variant_name, "credit_pack")
+    print(variant_id)
 
-    # Optional: Store order info
-    supabase.table("orders").insert({
-        "user_id": user_id,
-        "order_id": order_id,
-        "variant_id": variant_id,
-        "variant_name": variant_name,
-        "paid_at": paid_at,
-        "total": total,
-        "currency": currency
-    }).execute()
+    # Add credits based on the credit pack variant
+    await add_credits_to_user(user_id, variant_id,"Credit Pack Purchase", "topup")
+
+    # # Optional: Store order info
+    # supabase.table("orders").insert({
+    #     "user_id": user_id,
+    #     "order_id": order_id,
+    #     "variant_id": variant_id,
+    #     "variant_name": variant_name,
+    #     "paid_at": paid_at,
+    #     "total": total,
+    #     "currency": currency
+    # }).execute()
 
     print(f"Credits added for user {user_id} from order {order_id}")
