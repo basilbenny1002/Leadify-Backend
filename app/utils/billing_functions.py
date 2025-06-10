@@ -44,8 +44,8 @@ async def add_credits_to_user(
 
     user_response = supabase.from_("users").select("credits").eq("id", user_id).single().execute()
 
-    if user_response.status_code >= 400 or not user_response.data:
-        print(user_response.error)
+    if not user_response:
+        print(user_response)
         raise HTTPException(500, detail="Failed to fetch user's current credits.")
 
     current_credits = user_response.data["credits"] or 0
@@ -56,14 +56,14 @@ async def add_credits_to_user(
         "credits": new_credits
     }).eq("id", user_id).execute()
 
-    if update_response.status_code >= 400:
-        print(update_response.error)
+    if not update_response:
+        print(update_response)
         raise HTTPException(500, detail="Failed to update user's credits.")
 
     print(update_response)
 
-    if update_response.status_code >= 400:
-        print(update_response.error)
+    if not update_response:
+        print(update_response)
         raise HTTPException(500, detail="Failed to update credits.")
 
     # Log the credit transaction
