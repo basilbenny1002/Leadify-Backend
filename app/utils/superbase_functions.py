@@ -50,7 +50,7 @@ def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):
 
 
 def get_values(table_name: str, *column_names: str, condition=None):
-    query = f"SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}"
+    query = f'SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}'
     try:
         connection = psycopg2.connect(
             user=USER,
