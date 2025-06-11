@@ -81,7 +81,7 @@ async def add_credits_to_user(
     print(insert_response)
 
     if not insert_response:
-        print(insert_response.error)
+        print(insert_response)
         raise HTTPException(500, detail="Failed to log credit transaction.")
 
     print(f"✅ Added {credits} credits to user {user_id} | Reason: {reason} | Type: {credit_type}")
