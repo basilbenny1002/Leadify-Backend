@@ -51,7 +51,7 @@ async def add_credits_to_user(
 
     current_credits = user_response.data["credits"] or 0
 
-    new_credits = current_credits + credits 
+    new_credits = int(current_credits) + int(credits)
     print(current_credits)
     print(credits)
     print(new_credits)
