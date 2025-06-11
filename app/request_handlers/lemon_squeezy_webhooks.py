@@ -86,14 +86,14 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         "user_id": user_id,
         "subscription_id": subscription_id,
         "status": status,
-        "renews_at": renews_at,
-        "ends_at": ends_at,
+        "renews_at": renews_at.isoformat() if renews_at else None,
+        "ends_at": ends_at.isoformat() if ends_at else None,
         "plan_id": variant_id,
         "plan_name": variant_name,
         "product_id": product_id,
         "product_name": product_name,
         "billing_anchor": billing_anchor,
-        "created_at": created_at,
+        "created_at": created_at.isoformat() if created_at else None,
         "card_brand": card_brand,
         "card_last_four": card_last_four
     }
