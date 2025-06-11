@@ -38,8 +38,6 @@ async def handle_lemon_webhook(
 ):
     raw_body = await request.body()
 
-    print(raw_body)
-
     if not x_signature or not verify_signature(raw_body, x_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -56,6 +54,7 @@ async def handle_lemon_webhook(
         raise HTTPException(status_code=400, detail="Missing user ID")
 
     print(event_name)
+    print(product_type)
     if product_type == "subscription":
         await process_subscription_event(event_name, payload, user_id)
     elif product_type == "topup":
@@ -79,7 +78,9 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     card_last_four = attributes.get("card_last_four")
 
     # Check for existing subscription
-    existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+    existing = supabase.from_("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+
+    print(existing)
 
     sub_data = {
         "user_id": user_id,
@@ -99,36 +100,36 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
 
     if event_name == "subscription_created":
         if existing and existing.data:
-            supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
+            supabase.from_("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         else:
-            supabase.table("subscriptions").insert(sub_data).execute()
+            supabase.from_("subscriptions").insert(sub_data).execute()
         print("Subscription created by", user_id)
 
         # Add credits on new subscription
         await add_credits_to_user(user_id, variant_id,"Subscription Monthly Renewal create", "subscription")
 
     elif event_name == "subscription_updated":
-        supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
+        supabase.from_("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         print("Subscription updated for", user_id)
 
         # Optional: Add credits if you want on renewals or upgrades
         # await add_credits_to_user(user_id, variant_name, "subscription_updated")
 
     elif event_name in ["subscription_cancelled", "subscription_expired"]:
-        supabase.table("subscriptions").update({
+        supabase.from_("subscriptions").update({
             "status": "cancelled",
             "ends_at": ends_at
         }).eq("user_id", user_id).execute()
 
         # Set user as not premium
-        supabase.table("users").update({
+        supabase.from_("users").update({
             "subscription_status": False
         }).eq("id", user_id).execute()
 
         print("Subscription cancelled/expired for", user_id)
 
     elif event_name == "subscription_resumed":
-        supabase.table("subscriptions").update({
+        supabase.from_("subscriptions").update({
             "status": "active",
             "renews_at": renews_at,
             "ends_at": ends_at
@@ -139,7 +140,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         await add_credits_to_user(user_id, variant_id,"Subscription Monthly Renewal resume", "subscription")
 
     # Always update user subscription status
-    supabase.table("users").update({
+    supabase.from_("users").update({
         "subscription_status": status == "active",
     }).eq("id", user_id).execute()
 
@@ -152,7 +153,7 @@ async def update_subscription(payload: dict):
         raise HTTPException(400, "Missing user_id or variant_id")
 
     # fetch the existing subscription_id for this user
-    resp = supabase.table("subscriptions") \
+    resp = supabase.from_("subscriptions") \
         .select("subscription_id") \
         .eq("user_id", user_id) \
         .eq("status", "active") \
