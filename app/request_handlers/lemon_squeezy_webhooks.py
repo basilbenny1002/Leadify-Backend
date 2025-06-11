@@ -47,6 +47,7 @@ async def handle_lemon_webhook(
     event_name = payload.get("meta", {}).get("event_name")
     custom_data = payload.get("meta", {}).get("custom_data", {})
     user_id = custom_data.get("user_id")
+    product_type = custom_data.get("product_type")
 
     print(payload)
 
@@ -55,9 +56,9 @@ async def handle_lemon_webhook(
         raise HTTPException(status_code=400, detail="Missing user ID")
 
     print(event_name)
-    if event_name.startswith("subscription_"):
+    if product_type == "subscription":
         await process_subscription_event(event_name, payload, user_id)
-    elif event_name == "order_created":
+    elif product_type == "topup":
         await process_order_event(payload, user_id)
     return {"status": "success"}
 
