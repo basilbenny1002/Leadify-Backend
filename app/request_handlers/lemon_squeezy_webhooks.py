@@ -67,13 +67,13 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     subscription_id = data.get("id")
     status = attributes.get("status")
     renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
-    ends_at = attributes.get("ends_at")
+    ends_at = parser.parse(attributes.get("ends_at")) if attributes.get("ends_at") else None
     variant_id = attributes.get("variant_id")
     variant_name = attributes.get("variant_name", "Unknown Plan")
     product_id = attributes.get("product_id")
     product_name = attributes.get("product_name")
     billing_anchor = attributes.get("billing_anchor")
-    created_at = attributes.get("created_at")
+    created_at = parser.parse(attributes.get("created_at")) if attributes.get("created_at") else None
     card_brand = attributes.get("card_brand")
     card_last_four = attributes.get("card_last_four")
 
