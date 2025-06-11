@@ -264,3 +264,13 @@ async def initialize_user_onSignup(user_id: str):
     FREE_CREDITS = 25
 
     add_credits_to_user(user_id,"Signup Bonus", FREE_CREDITS, "bonus")
+
+
+def add_notification(user_id: str,title: str,  message: str):
+    supabase.from_("notifications").insert({
+        "user_id": user_id,
+        "title": title,
+        "description": message,
+        "read": False,
+        "created_at": datetime.datetime.now().isoformat()
+    }).execute()
