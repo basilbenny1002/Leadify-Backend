@@ -54,7 +54,7 @@ async def handle_lemon_webhook(
 
     print(event_name)
     print(product_type)
-    if product_type == "subscription":
+    if product_type == "subscription" and event_name !=  "order_created":
         await process_subscription_event(event_name, payload, user_id)
     elif product_type == "topup":
         await process_order_event(payload, user_id)
@@ -72,7 +72,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
     ends_at = parser.parse(attributes.get("ends_at")) if attributes.get("ends_at") else None
     variant_id = attributes.get("variant_id")
-    variant_name = attributes.get("first_order_item", {}).get("variant_name", "Unknown Plan")
+    variant_name = attributes.get("variant_name", "Unknown Plan")
     product_id = attributes.get("product_id")
     product_name = attributes.get("product_name")
     billing_anchor = attributes.get("billing_anchor")
