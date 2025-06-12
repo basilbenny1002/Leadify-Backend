@@ -7,7 +7,6 @@ import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from dateutil import parser
-import re
 from app.utils.billing_functions import add_credits_to_user, process_order_event
 
 load_dotenv()
@@ -195,5 +194,4 @@ def calculate_next_billing_date():
     return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)     
 
 def get_plan_name(full_plan: str) -> str:
-    match = re.match(r'^([^\(]+)', full_plan)
-    return match.group(1).strip() if match else full_plan
+    return full_plan.split(" ")[0]
