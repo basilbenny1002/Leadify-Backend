@@ -62,13 +62,23 @@ async def handle_lemon_webhook(
 
 async def process_subscription_event(event_name: str, payload: dict, user_id: str):
     data = payload.get("data", {})
+    print("DATA PRINT")
+    print(data)
     attributes = data.get("attributes", {})
+    print("ATTRIBUTES PRINT")
+    print(attributes)
     subscription_id = data.get("id")
     status = attributes.get("status")
     renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
     ends_at = parser.parse(attributes.get("ends_at")) if attributes.get("ends_at") else None
     variant_id = attributes.get("variant_id")
-    variant_name = attributes.get("variant_name") if attributes.get("variant_name") else "Unknown Plan"
+    try:
+        variant_name = attributes.get("variant_name")
+        print(variant_name)   
+    except Exception:
+            print(variant_name)
+            print(Exception)   
+            variant_name = "Unknown Plan" 
     product_id = attributes.get("product_id")
     product_name = attributes.get("product_name")
     billing_anchor = attributes.get("billing_anchor")
