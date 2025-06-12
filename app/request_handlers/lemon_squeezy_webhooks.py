@@ -141,6 +141,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
 
     # Always update user subscription status
     supabase.from_("users").update({
+        "subscription_plan": get_plan_name(variant_name),
         "subscription_status": status == "active",
     }).eq("id", user_id).execute()
 
@@ -192,3 +193,7 @@ async def update_subscription(payload: dict):
 def calculate_next_billing_date():
     # You can implement logic for the next billing date. For example, for monthly plans:
     return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)     
+
+def get_plan_name(full_plan: str) -> str:
+    match = re.match(r'^([^\(]+)', full_plan)
+    return match.group(1).strip() if match else full_plan
