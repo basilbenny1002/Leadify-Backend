@@ -68,7 +68,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
     ends_at = parser.parse(attributes.get("ends_at")) if attributes.get("ends_at") else None
     variant_id = attributes.get("variant_id")
-    variant_name = attributes.get("variant_name", "Unknown Plan")
+    variant_name = attributes.get("variant_name") if attributes.get("variant_name") else "Unknown Plan"
     product_id = attributes.get("product_id")
     product_name = attributes.get("product_name")
     billing_anchor = attributes.get("billing_anchor")
@@ -80,6 +80,8 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     existing = supabase.from_("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
 
     print(existing)
+
+    print(variant_name)
 
     sub_data = {
         "user_id": user_id,
