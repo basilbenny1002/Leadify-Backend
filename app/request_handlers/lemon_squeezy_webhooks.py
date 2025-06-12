@@ -7,7 +7,7 @@ import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from dateutil import parser
-
+import re
 from app.utils.billing_functions import add_credits_to_user, process_order_event
 
 load_dotenv()
