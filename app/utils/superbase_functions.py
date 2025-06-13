@@ -272,5 +272,17 @@ def add_notification(user_id: str,title: str,  message: str):
         "title": title,
         "description": message,
         "read": False,
-        "created_at": datetime.datetime.now().isoformat()
+        "created_at": datetime.datetime.now().isoformat(),
+        "type": "info"
     }).execute()
+
+def clean_old_notifications():
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # 1. Delete unread notifications older than 7 days
+    seven_days_ago = (now - datetime.timedelta(days=7)).isoformat()
+    supabase.from_("notifications").delete().lt("created_at", seven_days_ago).eq("read", False).execute()
+
+    # 2. Delete read notifications older than 3 days
+    three_days_ago = (now - datetime.timedelta(days=3)).isoformat()
+    supabase.from_("notifications").delete().lt("created_at", three_days_ago).eq("read", True).execute()
