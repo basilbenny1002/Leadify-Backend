@@ -398,7 +398,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     }
     upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
 
-    add_notification(user_id, "Search Complete",f"Found {active_scrapers[user_id]["Streamers"]} streamers")
+    add_notification(user_id, "Search Complete",f"Found {active_scrapers[user_id]['Streamers']} streamers")
     update_progress(user_id, values={
     "Stage": 5,"Done": True, "search_id": search_id_uuid,
       "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
