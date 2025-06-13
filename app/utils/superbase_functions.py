@@ -1,5 +1,7 @@
 import datetime
 import uuid
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 import psycopg2
 from dotenv import load_dotenv
 import os
@@ -7,6 +9,7 @@ import json
 from decimal import Decimal
 import decimal
 from supabase import create_client, Client
+from app.utils.billing_functions import add_credits_to_user
 from app.utils.functions import load_config
 load_config()
 
@@ -47,7 +50,7 @@ def upload_csv(search_id_uuid, user_id, filters, file_name, total, valid):
 
 
 def get_values(table_name: str, *column_names: str, condition=None):
-    query = f"SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}"
+    query = f'SELECT {",".join(column_names)} FROM {table_name}{condition if condition else ""}'
     try:
         connection = psycopg2.connect(
             user=USER,
@@ -252,3 +255,34 @@ async def delete_saved_filter(user_id: str, filter_id: str):
     if not response.data:
         raise Exception(response)
     return {"status": "deleted"}
+
+async def initialize_user_onSignup(user_id: str):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+
+    # Free plan default setup
+    FREE_CREDITS = 25
+
+    add_credits_to_user(user_id,"Signup Bonus", FREE_CREDITS, "bonus")
+
+
+def add_notification(user_id: str,title: str,  message: str):
+    supabase.from_("notifications").insert({
+        "user_id": user_id,
+        "title": title,
+        "description": message,
+        "read": False,
+        "created_at": datetime.datetime.now().isoformat(),
+        "type": "info"
+    }).execute()
+
+def clean_old_notifications():
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # 1. Delete unread notifications older than 7 days
+    seven_days_ago = (now - datetime.timedelta(days=7)).isoformat()
+    supabase.from_("notifications").delete().lt("created_at", seven_days_ago).eq("read", False).execute()
+
+    # 2. Delete read notifications older than 3 days
+    three_days_ago = (now - datetime.timedelta(days=3)).isoformat()
+    supabase.from_("notifications").delete().lt("created_at", three_days_ago).eq("read", True).execute()

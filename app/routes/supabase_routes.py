@@ -1,19 +1,18 @@
+import datetime
 from fastapi import APIRouter
 from pydantic import BaseModel
 from uuid import UUID
 from pydantic import BaseModel
 from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
-from scrapers.twitch_Scraper import start
-from scrapers.scraper_functions import AnyValue
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, save_filter_to_supabase, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
+from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, fetch_saved_streamers, toggle_favourite
 from typing import Optional
 
 load_config()
 
-ANYT = AnyValue(choice=True)
+
 
 class FolderCreate(BaseModel):
     name: str
@@ -37,6 +36,15 @@ class FilterSave(BaseModel):
     
 
 router = APIRouter()
+
+@router.post("/initialize-user")
+async def initialize_user(user_id: str):
+    try:
+        initialize_user_onSignup(user_id)
+        print("function passed", flush=True)
+        return JSONResponse(status_code=200, content={"status": "success"})     
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @router.post("/streamers/save")
@@ -123,3 +131,5 @@ async def delete_filter_route(filter_id: str, request: Request):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    

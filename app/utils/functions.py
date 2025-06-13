@@ -8,7 +8,7 @@ load_dotenv()
 def get_twitch_live_categories(max_pages=696969): #Funny number
     headers = {
         'Client-ID': os.getenv('client_id'),
-        'Authorization': f'Bearer {os.getenv('access_token')}'
+        'Authorization': f"Bearer {os.getenv('access_token')}"
     }
 
     url = 'https://api.twitch.tv/helix/streams'
@@ -50,7 +50,7 @@ def load_config():
     load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent / '.env')
 
 def category_to_id(category: str):
-    with open(r".\app\utils\datas\categories.json", "r", encoding="utf-8") as f:
+    with open(f"{os.path.join('app', 'utils', 'datas', 'categories.json')}", "r", encoding="utf-8") as f:
         data = json.load(f)
         return int(data[category])
                   
