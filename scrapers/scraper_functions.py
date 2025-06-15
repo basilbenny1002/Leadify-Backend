@@ -543,13 +543,13 @@ def get_twitch_details(channel_name, channel_id):
     print("Headers: ", HEADERS)
         
     resp = requests.post(URL, headers=HEADERS, data=payload)
-    print("Response status:", resp.status_code)
+    print("Response status:", resp.status_code, flush=True)
     emails = []
     socials = []
     try:
         resp.raise_for_status()
     except requests.HTTPError as e:
-        print(f"HTTP error: {e} (status {resp.status_code})")
+        print(f"HTTP error: {e} (status {resp.status_code})", flush=True)
         return {"emails": emails, "socials": socials}
     
     print("Response status:", resp.status_code)
@@ -571,7 +571,7 @@ def get_twitch_details(channel_name, channel_id):
     except TypeError as e:
         print(f"TypeError First loop: {e} (status {resp.status_code})")
     except Exception as e:
-        print(f"Error First loop : {e} (status {resp.status_code})")
+        print(f"Error First loop : {e} (status {resp.status_code})", flush=True)
         
     try:
         for panel in better_data[2]['data']['user']['panels']:
@@ -589,9 +589,9 @@ def get_twitch_details(channel_name, channel_id):
             else:
                 print("No URL found for this panel.")
     except TypeError as e:
-        print(f"TypeError Second loop: {e} (status {resp.status_code})")
+        print(f"TypeError Second loop: {e} (status {resp.status_code})", flush=True)
     except Exception as e:
-        print(f"Error Second loop: {e} (status {resp.status_code})")
+        print(f"Error Second loop: {e} (status {resp.status_code})", flush=True)
 
 
     print("Description: ", better_data[1]['data']['user']['description'])
