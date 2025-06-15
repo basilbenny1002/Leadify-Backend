@@ -596,6 +596,9 @@ def get_twitch_details(channel_name, channel_id):
 
     print("Description: ", better_data[1]['data']['user']['description'])
     emails = extract_emails(better_data[1]['data']['user']['description'])
+    if len(socials) < 1:
+        print(resp.text, flush=True)
+        print(resp.status_code) 
     return {"emails": emails, "links": list(set(socials))}
 
 
