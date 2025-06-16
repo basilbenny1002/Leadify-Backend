@@ -467,7 +467,7 @@ def extract_urls(text):
     url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
     return re.findall(url_pattern, text)
 
-def get_twitch_details(channel_name, channel_id, session):
+def get_twitch_details(channel_name, channel_id, session: requests.Session, dev_id, session_id):
     time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
     URL = 'https://gql.twitch.tv/gql'
 
@@ -477,7 +477,7 @@ def get_twitch_details(channel_name, channel_id, session):
         'accept-language': 'en-US',
         # 'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
         'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
-        'client-session-id': f'{generate_device_id(16, only_a_to_d=True).lower()}', #ANY RANDOM ONE SHOUDL WORK
+        'client-session-id': f'{session_id}', #ANY RANDOM ONE SHOUDL WORK
         'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
         'content-type': 'text/plain;charset=UTF-8',
         'origin': 'https://www.twitch.tv',
@@ -492,7 +492,7 @@ def get_twitch_details(channel_name, channel_id, session):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                         'AppleWebKit/537.36 (KHTML, like Gecko) '
                         'Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
-        'x-device-id': f'{generate_device_id(32)}' #ANY RANDOM ONE SHOULD'VE WORKED
+        'x-device-id': f'{dev_id}' #ANY RANDOM ONE SHOULD'VE WORKED
     }
 
     payload_template ="""
@@ -542,7 +542,7 @@ def get_twitch_details(channel_name, channel_id, session):
     # print("Payload: ", payload)
     # print("Headers: ", HEADERS)
         
-    resp = session.post(URL, headers=HEADERS, data=payload)
+    resp = session.post(URL, headers=HEADERS, data=payload, cookies=session.cookies.get_dict())
     print("Response status:", resp.status_code)
     emails = []
     socials = []
