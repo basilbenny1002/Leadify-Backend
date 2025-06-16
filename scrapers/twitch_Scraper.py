@@ -12,6 +12,7 @@ import threading
 import queue
 from supabase import create_client
 import uuid
+import requests
 import os
 from app.utils.superbase_functions import upload_csv 
 from scrapers.scraper_functions import AnyValue, classify
@@ -121,7 +122,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             pbar.update(1)
 
 
-def process_streamer(streamer, index, user_id, streamers, results_queue):
+def process_streamer(streamer, index, user_id, streamers, results_queue, session):
     
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -162,7 +163,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = get_twitch_details(streamer['user_name'], streamer['user_id'])
+        response = get_twitch_details(streamer['user_name'], streamer['user_id'], session)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -310,6 +311,8 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     Main function to start the scraping process.
     
     """
+    session = requests.Session()
+    r = session.get("https://www.twitch.tv")
     lock = threading.Lock()
 
     streamers = []
@@ -328,7 +331,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue))
+            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, session))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)

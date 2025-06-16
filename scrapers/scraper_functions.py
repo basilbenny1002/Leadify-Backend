@@ -467,7 +467,7 @@ def extract_urls(text):
     url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
     return re.findall(url_pattern, text)
 
-def get_twitch_details(channel_name, channel_id):
+def get_twitch_details(channel_name, channel_id, session):
     time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
     URL = 'https://gql.twitch.tv/gql'
 
@@ -539,10 +539,10 @@ def get_twitch_details(channel_name, channel_id):
     }
     ]""".strip() 
     payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
-    print("Payload: ", payload)
-    print("Headers: ", HEADERS)
+    # print("Payload: ", payload)
+    # print("Headers: ", HEADERS)
         
-    resp = requests.post(URL, headers=HEADERS, data=payload)
+    resp = session.post(URL, headers=HEADERS, data=payload)
     print("Response status:", resp.status_code)
     emails = []
     socials = []
@@ -550,6 +550,8 @@ def get_twitch_details(channel_name, channel_id):
         resp.raise_for_status()
     except requests.HTTPError as e:
         print(f"HTTP error: {e} (status {resp.status_code})")
+        print(resp, flush=True)
+        print(resp.status_code)
         return {"emails": emails, "socials": socials}
     
     print("Response status:", resp.status_code)
@@ -592,15 +594,93 @@ def get_twitch_details(channel_name, channel_id):
         print(f"TypeError Second loop: {e} (status {resp.status_code})")
     except Exception as e:
         print(f"Error Second loop: {e} (status {resp.status_code})")
+        
 
 
     print("Description: ", better_data[1]['data']['user']['description'])
     emails = extract_emails(better_data[1]['data']['user']['description'])
+    if len(socials) < 1:
+        print(resp, flush=True)
+        print(resp.status_code)
     return {"emails": emails, "links": list(set(socials))}
 
 
+import requests
+import re
 
-               
+def get_visible_proxies():
+    url = "https://spys.one/en/socks-proxy-list/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+
+    session = requests.Session()
+    resp = session.post(url, headers=headers)
+
+    if resp.status_code != 200:
+        print("Request failed:", resp.status_code)
+        return []
+
+    html = resp.text
+
+    # Optional: save response for debugging
+    with open("response.raw", "w", encoding="utf-8") as f:
+        f.write(html)
+    with open("response.raw", "r", encoding="utf-8") as f:
+        html = f.read()
+
+
+    # Extract all IPs and ports from >...< blocks
+    matches = re.findall(r">(\d{1,3}(?:\.\d{1,3}){3})<|>(\d{2,5})<", html)
+
+    # Flatten and clean up results (remove None)
+    values = [ip or port for ip, port in matches]
+
+    # Group as IP:Port pairs (IP followed by port)
+    proxies = []
+    for i in range(0, len(values) - 1, 2):
+        ip = values[i]
+        port = values[i + 1]
+        if re.match(r"^\d{1,3}(?:\.\d{1,3}){3}$", ip) and re.match(r"^\d{2,5}$", port):
+            proxies.append(f"{ip}:{port}")
+
+    return proxies
+
+import re
+
+def extract_ip_port_pairs(html: str, window: int = 200):
+    # Regex to grab every IP between '>' and '<'
+    ip_pattern   = re.compile(r">(\d{1,3}(?:\.\d{1,3}){3})(?=<)")
+    # Regex to grab every 2–5 digit number between '>' and '<' (ports or other numbers)
+    port_pattern = re.compile(r">(\d{2,5})(?=<)")
+
+    ips   = ip_pattern.findall(html)
+    ports = port_pattern.findall(html)
+
+    pairs = []
+    # Pair them in order, stopping when either list runs out
+    for ip, port in zip(ips, ports):
+        pairs.append(f"{ip}:{port}")
+
+    return pairs
+
 if __name__ == "__main__":
-    # print(get_twitch_details("notexxdval", "183489909"))
-    print(format_time(60))
+    pass
+    # Load your raw HTML
+    # with open("response.txt", "r", encoding="utf-8") as f:
+    #     raw_html = f.read()
+
+    # all_pairs = extract_ip_port_pairs(raw_html)
+    # print(f"Found {len(all_pairs)} pairs (including duplicates):")
+    # for pair in all_pairs:
+    #     print(pair)
+
+
+    
+
+    # session = requests.Session()
+    # response = session.get("https://www.twitch.tv")
+
+    # # Print all cookies received
+    # for cookie in session.cookies:
+    #     print(f"{cookie.name} = {cookie.value}")
