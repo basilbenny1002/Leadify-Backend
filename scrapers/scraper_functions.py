@@ -3,6 +3,9 @@ import subprocess, json
 from typing import Union
 from playwright.sync_api import sync_playwright
 from playwright.sync_api import sync_playwright
+# import asyncio
+from concurrent.futures import ThreadPoolExecutor
+# from proxybroker import Broker
 import requests
 import json
 import sys
@@ -223,6 +226,8 @@ def extract_emails(text: str) -> list[str]:
     Extract all email addresses from the given text.
     Returns them in lowercase, excluding obvious image‑file names.
     """
+    if not text:
+        return []
     # Simpler pattern: match word characters, dots, underscores, percent, plus, hyphen,
     # then '@', then domain chars, then a dot and 2+ letters.
     email_pattern = r'\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b'
@@ -467,9 +472,13 @@ def extract_urls(text):
     url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
     return re.findall(url_pattern, text)
 
-def get_twitch_details(channel_name, channel_id, session: requests.Session, dev_id, session_id):
+def get_twitch_details(channel_name, channel_id, session: requests.Session = None, dev_id=None, session_id = None):
     time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
     URL = 'https://gql.twitch.tv/gql'
+    if not session_id:
+        session_id = generate_device_id(16, only_a_to_d=True).lower()
+    if not dev_id:
+        generate_device_id(32)
 
     HEADERS = {
         'accept': '*/*',
@@ -541,8 +550,10 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session, dev_
     payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
     # print("Payload: ", payload)
     # print("Headers: ", HEADERS)
-        
-    resp = session.post(URL, headers=HEADERS, data=payload, cookies=session.cookies.get_dict())
+    if not session:
+        resp = requests.post(URL, headers=HEADERS, data=payload)
+    else:    
+        resp = session.post(URL, headers=HEADERS, data=payload, cookies=session.cookies.get_dict())
     print("Response status:", resp.status_code)
     emails = []
     socials = []
@@ -554,17 +565,17 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session, dev_
         print(resp.status_code)
         return {"emails": emails, "socials": socials}
     
-    print("Response status:", resp.status_code)
-    print("\n\n\n", flush=True)
-    print("Response text:", resp.text, flush=True)
-    print("\n\n\n", flush=True)
+    # print("Response status:", resp.status_code)
+    # print("\n\n\n", flush=True)
+    # print("Response text:", resp.text, flush=True)
+    # print("\n\n\n", flush=True)
 
     data = try_parse_json(resp)
     # data = resp.json()
-    print("Data: ", data, flush=True)
+    # print("Data: ", data, flush=True)
     # data = resp.json()
     better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False)) 
-    print("Better data: ", better_data, flush=True)
+    # print("Better data: ", better_data, flush=True)
 
     try:
         for link in better_data[1]['data']['user']['channel']['socialMedias']:
@@ -597,90 +608,81 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session, dev_
         
 
 
-    print("Description: ", better_data[1]['data']['user']['description'])
-    emails = extract_emails(better_data[1]['data']['user']['description'])
+    # print("Description: ", better_data[1]['data']['user']['description'])
+    emails = extract_emails(better_data[1]['data']['user'].get('description'))
     if len(socials) < 1:
         print(resp, flush=True)
         print(resp.status_code)
     return {"emails": emails, "links": list(set(socials))}
 
 
-import requests
-import re
 
-def get_visible_proxies():
-    url = "https://spys.one/en/socks-proxy-list/"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    }
+# def get_proxy():
+#     """
+#     Finds a proxy with preference for SOCKS5, then SOCKS4, then HTTP/HTTPS.
+#     Returns a dictionary that can be passed directly to requests' proxies parameter.
+#     """
+#     async def find_proxy():
+#         proxies = await Broker().find(types=['SOCKS5', 'SOCKS4', 'HTTP', 'HTTPS'], limit=10)
+#         for proxy in proxies:
+#             if 'SOCKS5' in proxy.types:
+#                 return proxy, 'socks5'
+#             elif 'SOCKS4' in proxy.types:
+#                 return proxy, 'socks4'
+#             elif 'HTTP' in proxy.types or 'HTTPS' in proxy.types:
+#                 return proxy, 'http'
+#         return None, None
 
-    session = requests.Session()
-    resp = session.post(url, headers=headers)
+#     proxy, proxy_type = asyncio.run(find_proxy())
+#     if proxy:
+#         if proxy_type in ['socks5', 'socks4']:
+#             proxy_url = f'{proxy_type}://{proxy.host}:{proxy.port}'
+#         else:
+#             proxy_url = f'http://{proxy.host}:{proxy.port}'
+#         return {'http': proxy_url, 'https': proxy_url}
+#     else:
+#         return None
+    
+# import asyncio
+# from proxybroker import Broker
+# import requests
 
-    if resp.status_code != 200:
-        print("Request failed:", resp.status_code)
-        return []
-
-    html = resp.text
-
-    # Optional: save response for debugging
-    with open("response.raw", "w", encoding="utf-8") as f:
-        f.write(html)
-    with open("response.raw", "r", encoding="utf-8") as f:
-        html = f.read()
-
-
-    # Extract all IPs and ports from >...< blocks
-    matches = re.findall(r">(\d{1,3}(?:\.\d{1,3}){3})<|>(\d{2,5})<", html)
-
-    # Flatten and clean up results (remove None)
-    values = [ip or port for ip, port in matches]
-
-    # Group as IP:Port pairs (IP followed by port)
-    proxies = []
-    for i in range(0, len(values) - 1, 2):
-        ip = values[i]
-        port = values[i + 1]
-        if re.match(r"^\d{1,3}(?:\.\d{1,3}){3}$", ip) and re.match(r"^\d{2,5}$", port):
-            proxies.append(f"{ip}:{port}")
-
+# async def get_proxy():
+#     proxy = await Broker().find(types=['HTTP', 'HTTPS'], limit=1)
+#     return proxy[0]
+def fetch_proxies():
+    url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=https&timeout=2000&country=all&ssl=all&anonymity=elite"
+    response = requests.get(url)
+    proxies = [line.strip() for line in response.text.splitlines() if line.strip()]
     return proxies
 
-import re
+# Step 2: Check if a proxy works
+def is_proxy_alive(proxy):
+    proxy_dict = {
+        "http": f"http://{proxy}",
+        "https": f"http://{proxy}"  # yes, http:// even for HTTPS requests
+    }
+    try:
+        r = requests.get("https://httpbin.org/ip", proxies=proxy_dict, timeout=5)
+        if r.status_code == 200:
+            return proxy_dict
+    except:
+        pass
+    return None
 
-def extract_ip_port_pairs(html: str, window: int = 200):
-    # Regex to grab every IP between '>' and '<'
-    ip_pattern   = re.compile(r">(\d{1,3}(?:\.\d{1,3}){3})(?=<)")
-    # Regex to grab every 2–5 digit number between '>' and '<' (ports or other numbers)
-    port_pattern = re.compile(r">(\d{2,5})(?=<)")
-
-    ips   = ip_pattern.findall(html)
-    ports = port_pattern.findall(html)
-
-    pairs = []
-    # Pair them in order, stopping when either list runs out
-    for ip, port in zip(ips, ports):
-        pairs.append(f"{ip}:{port}")
-
-    return pairs
+# Step 3: Filter working proxies (multi-threaded)
+def get_working_proxies(limit=10):
+    raw_proxies = fetch_proxies()
+    working = []
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        for result in executor.map(is_proxy_alive, raw_proxies):
+            if result:
+                working.append(result)
+            if len(working) >= limit:
+                break
+    return working
 
 if __name__ == "__main__":
+    # print(get_twitch_details("thinkingmansvalo", "783648767"))
     pass
-    # Load your raw HTML
-    # with open("response.txt", "r", encoding="utf-8") as f:
-    #     raw_html = f.read()
-
-    # all_pairs = extract_ip_port_pairs(raw_html)
-    # print(f"Found {len(all_pairs)} pairs (including duplicates):")
-    # for pair in all_pairs:
-    #     print(pair)
-
-
-    
-
-    # session = requests.Session()
-    # response = session.get("https://www.twitch.tv")
-
-    # # Print all cookies received
-    # for cookie in session.cookies:
-    #     print(f"{cookie.name} = {cookie.value}")
+            

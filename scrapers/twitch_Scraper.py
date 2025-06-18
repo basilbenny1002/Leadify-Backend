@@ -3,8 +3,9 @@ import pandas as pd
 from scrapers.scraper_functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from scrapers.scraper_functions import scrape_twitter
-from scrapers.scraper_functions import convert_to_percentage, get_twitch_details, format_time, generate_device_id
+from scrapers.scraper_functions import convert_to_percentage, get_twitch_details, format_time, generate_device_id, get_working_proxies
 import logging
+import random
 import datetime
 import time
 from dotenv import load_dotenv
@@ -122,7 +123,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             pbar.update(1)
 
 
-def process_streamer(streamer, index, user_id, streamers, results_queue, session, dev_id, session_id):
+def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id, session_id):
     
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -163,7 +164,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue, session
 
     # Scrape Twitch about section with error handling
     try:
-        response = get_twitch_details(streamer['user_name'], streamer['user_id'], session, dev_id=dev_id, session_id=session_id)
+        response = get_twitch_details(streamer['user_name'], streamer['user_id'], dev_id=dev_id, session_id=session_id)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -311,10 +312,18 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     Main function to start the scraping process.
     
     """
-    session = requests.Session()
+    update_progress(user_id, values={
+    "Stage": 0, "Rate": 0, "ETA": format_time(0), "Streamers": 0,
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
+    "Done": False, "search_id": "", "download_url": ""
+    })  
+    # proxies = get_working_proxies()
+    # choosen_proxies = random.choice(proxies)
+    # session = requests.Session()
+    # session.proxies.update(choosen_proxies)
     session_id = generate_device_id(16, only_a_to_d=True).lower()
     device_id = generate_device_id(32)
-    r = session.get("https://www.twitch.tv")
+    # r = session.get("https://www.twitch.tv")
     lock = threading.Lock()
 
     streamers = []
@@ -333,7 +342,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, session, device_id, session_id))
+            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, device_id, session_id))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
