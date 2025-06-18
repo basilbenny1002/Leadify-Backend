@@ -484,7 +484,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         'accept': '*/*',
         'accept-encoding': 'gzip, deflate, br, zstd',
         'accept-language': 'en-US',
-        # 'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
+        'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
         'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
         'client-session-id': f'{session_id}', #ANY RANDOM ONE SHOUDL WORK
         'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
