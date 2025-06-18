@@ -9,7 +9,7 @@ import json
 from decimal import Decimal
 import decimal
 from supabase import create_client, Client
-from app.utils.billing_functions import add_credits_to_user
+from app.utils.billing_functions import add_credits
 from app.utils.functions import load_config
 load_config()
 
@@ -179,16 +179,42 @@ async def get_folders(user_id: str):
 
 async def get_saved_streamers(user_id: str, folder_id: str):
     response = None
-    if folder_id == "all":
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).execute()
-    elif folder_id == "favourites":
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("is_favourite", True).execute()
-    else:
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("folder_id", folder_id).execute()
 
+    if folder_id == "all":
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("saved_at", desc=True)
+            .execute()
+        )
+
+    elif folder_id == "favourites":
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("is_favourite", True)
+            .order("saved_at", desc=True)
+            .execute()
+        )
+
+    else:
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("folder_id", folder_id)
+            .order("saved_at", desc=True)            
+            .execute()
+        )
 
     if not response.data:
         return []
+
     return response.data
 
 
@@ -263,4 +289,4 @@ async def initialize_user_onSignup(user_id: str):
     # Free plan default setup
     FREE_CREDITS = 25
 
-    add_credits_to_user(user_id,"Signup Bonus", FREE_CREDITS, "bonus")
+    add_credits(user_id,"Signup Bonus", FREE_CREDITS, "bonus")

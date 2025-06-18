@@ -8,6 +8,7 @@ from .request_handlers.lemon_squeezy_webhooks import router as webhook_router
 # from app.routes import router as main_router
 from app.routes.supabase_routes import router as supabase_router
 from app.routes.twitch_Scraper_routes import router as twitch_scraper_router
+from app.routes.billing_routes import router as billing_router
 
 
 load_config()
@@ -33,6 +34,7 @@ app.add_middleware(
 app.include_router(webhook_router)
 app.include_router(supabase_router)
 app.include_router(twitch_scraper_router)
+app.include_router(billing_router)
 
 
 @app.get("/")
