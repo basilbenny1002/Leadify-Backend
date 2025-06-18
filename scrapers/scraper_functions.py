@@ -684,5 +684,19 @@ def get_working_proxies(limit=10):
 
 if __name__ == "__main__":
     # print(get_twitch_details("thinkingmansvalo", "783648767"))
+
+    # Create a session
+    session = requests.Session()
+
+    # Send GET request to Twitch
+    response = session.get("https://www.twitch.tv")
+
+    # Get cookies from the session
+    cookies = session.cookies
+
+    # Print all cookie names and values
+    print("Cookies received from Twitch.tv:\n")
+    for cookie in cookies:
+        print(f"{cookie.name} = {cookie.value}")
     pass
-            
+                

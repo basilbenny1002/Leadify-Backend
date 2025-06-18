@@ -123,7 +123,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             pbar.update(1)
 
 
-def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id, session_id):
+def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id, session_id, session):
     
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
@@ -164,7 +164,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id,
 
     # Scrape Twitch about section with error handling
     try:
-        response = get_twitch_details(streamer['user_name'], streamer['user_id'], dev_id=dev_id, session_id=session_id)
+        response = get_twitch_details(streamer['user_name'], streamer['user_id'], dev_id=dev_id, session_id=session_id, session=session)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -319,10 +319,18 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     })  
     # proxies = get_working_proxies()
     # choosen_proxies = random.choice(proxies)
-    # session = requests.Session()
+    session = requests.Session()
+    resp = session.get("https://www.twitch.tv")
     # session.proxies.update(choosen_proxies)
+    cookies = session.cookies
     session_id = generate_device_id(16, only_a_to_d=True).lower()
     device_id = generate_device_id(32)
+    for cookie in cookies:
+        if "session" in str(cookie):
+            session_id = cookie.value
+        if "unique" in str(cookie):
+            device_id = cookie.value
+    
     # r = session.get("https://www.twitch.tv")
     lock = threading.Lock()
 
@@ -342,7 +350,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, device_id, session_id))
+            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, device_id, session_id, session))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
