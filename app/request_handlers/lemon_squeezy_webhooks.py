@@ -7,8 +7,7 @@ import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from dateutil import parser
-
-from app.utils.billing_functions import add_credits_to_user, process_order_event
+from app.utils.billing_functions import process_order_event, process_subscription_event
 
 load_dotenv()
 
@@ -38,8 +37,6 @@ async def handle_lemon_webhook(
 ):
     raw_body = await request.body()
 
-    print(raw_body)
-
     if not x_signature or not verify_signature(raw_body, x_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -47,6 +44,7 @@ async def handle_lemon_webhook(
     event_name = payload.get("meta", {}).get("event_name")
     custom_data = payload.get("meta", {}).get("custom_data", {})
     user_id = custom_data.get("user_id")
+    product_type = custom_data.get("product_type")
 
     print(payload)
 
@@ -55,138 +53,55 @@ async def handle_lemon_webhook(
         raise HTTPException(status_code=400, detail="Missing user ID")
 
     print(event_name)
-    if event_name.startswith("subscription_"):
+    print(product_type)
+    if product_type == "subscription" and event_name !=  "order_created":
         await process_subscription_event(event_name, payload, user_id)
-    elif event_name == "order_created":
+    elif product_type == "topup":
         await process_order_event(payload, user_id)
     return {"status": "success"}
 
-async def process_subscription_event(event_name: str, payload: dict, user_id: str):
-    data = payload.get("data", {})
-    attributes = data.get("attributes", {})
-    subscription_id = data.get("id")
-    status = attributes.get("status")
-    renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
-    ends_at = attributes.get("ends_at")
-    variant_id = attributes.get("variant_id")
-    variant_name = attributes.get("variant_name", "Unknown Plan")
-    product_id = attributes.get("product_id")
-    product_name = attributes.get("product_name")
-    billing_anchor = attributes.get("billing_anchor")
-    created_at = attributes.get("created_at")
-    card_brand = attributes.get("card_brand")
-    card_last_four = attributes.get("card_last_four")
 
-    # Check for existing subscription
-    existing = supabase.table("subscriptions").select("*").eq("user_id", user_id).maybe_single().execute()
+# @router.post("/update-subscription")
+# async def update_subscription(payload: dict):
+#     user_id = payload.get("user_id")
+#     new_variant_id = payload.get("variant_id")
+#     if not user_id or not new_variant_id:
+#         raise HTTPException(400, "Missing user_id or variant_id")
 
-    sub_data = {
-        "user_id": user_id,
-        "subscription_id": subscription_id,
-        "status": status,
-        "renews_at": renews_at,
-        "ends_at": ends_at,
-        "plan_id": variant_id,
-        "plan_name": variant_name,
-        "product_id": product_id,
-        "product_name": product_name,
-        "billing_anchor": billing_anchor,
-        "created_at": created_at,
-        "card_brand": card_brand,
-        "card_last_four": card_last_four
-    }
+#     # fetch the existing subscription_id for this user
+#     resp = supabase.from_("subscriptions") \
+#         .select("subscription_id") \
+#         .eq("user_id", user_id) \
+#         .eq("status", "active") \
+#         .maybe_single() \
+#         .execute()
+#     sub = resp.data
+#     if not sub:
+#         raise HTTPException(400, "No active subscription found")
 
-    if event_name == "subscription_created":
-        if existing and existing.data:
-            supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
-        else:
-            supabase.table("subscriptions").insert(sub_data).execute()
-        print("Subscription created by", user_id)
+#     subscription_id = sub["subscription_id"]
 
-        # Add credits on new subscription
-        await add_credits_to_user(user_id, variant_id,"Subscription Monthly Renewal", "subscription")
+#     # PATCH to Lemon Squeezy to change plan
+#     url = f"https://api.lemonsqueezy.com/v1/subscriptions/{subscription_id}"
+#     body = {
+#       "data": {
+#         "type": "subscriptions",
+#         "id": subscription_id,
+#         "attributes": {
+#           "variant_id": new_variant_id,
+#           "invoice_immediately": True
+#         }
+#       }
+#     }
+#     headers = {
+#       "Authorization": f"Bearer {LEMON_API_KEY}",
+#       "Accept": "application/vnd.api+json",
+#       "Content-Type": "application/vnd.api+json"
+#     }
+#     async with httpx.AsyncClient() as client:
+#         r = await client.patch(url, json=body, headers=headers)
+#         r.raise_for_status()
 
-    elif event_name == "subscription_updated":
-        supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
-        print("Subscription updated for", user_id)
+#     # return the webhook will update your DB automatically
+#     return {"message": "Subscription change initiated"}
 
-        # Optional: Add credits if you want on renewals or upgrades
-        # await add_credits_to_user(user_id, variant_name, "subscription_updated")
-
-    elif event_name in ["subscription_cancelled", "subscription_expired"]:
-        supabase.table("subscriptions").update({
-            "status": "cancelled",
-            "ends_at": ends_at
-        }).eq("user_id", user_id).execute()
-
-        # Set user as not premium
-        supabase.table("users").update({
-            "subscription_status": False
-        }).eq("id", user_id).execute()
-
-        print("Subscription cancelled/expired for", user_id)
-
-    elif event_name == "subscription_resumed":
-        supabase.table("subscriptions").update({
-            "status": "active",
-            "renews_at": renews_at,
-            "ends_at": ends_at
-        }).eq("user_id", user_id).execute()
-        print("Subscription resumed for", user_id)
-
-        # Add credits on resume as well
-        await add_credits_to_user(user_id, variant_name, "subscription_resumed")
-
-    # Always update user subscription status
-    supabase.table("users").update({
-        "subscription_status": status == "active",
-    }).eq("id", user_id).execute()
-
-
-@router.post("/update-subscription")
-async def update_subscription(payload: dict):
-    user_id = payload.get("user_id")
-    new_variant_id = payload.get("variant_id")
-    if not user_id or not new_variant_id:
-        raise HTTPException(400, "Missing user_id or variant_id")
-
-    # fetch the existing subscription_id for this user
-    resp = supabase.table("subscriptions") \
-        .select("subscription_id") \
-        .eq("user_id", user_id) \
-        .eq("status", "active") \
-        .maybe_single() \
-        .execute()
-    sub = resp.data
-    if not sub:
-        raise HTTPException(400, "No active subscription found")
-
-    subscription_id = sub["subscription_id"]
-
-    # PATCH to Lemon Squeezy to change plan
-    url = f"https://api.lemonsqueezy.com/v1/subscriptions/{subscription_id}"
-    body = {
-      "data": {
-        "type": "subscriptions",
-        "id": subscription_id,
-        "attributes": {
-          "variant_id": new_variant_id,
-          "invoice_immediately": True
-        }
-      }
-    }
-    headers = {
-      "Authorization": f"Bearer {LEMON_API_KEY}",
-      "Accept": "application/vnd.api+json",
-      "Content-Type": "application/vnd.api+json"
-    }
-    async with httpx.AsyncClient() as client:
-        r = await client.patch(url, json=body, headers=headers)
-        r.raise_for_status()
-
-    # return the webhook will update your DB automatically
-    return {"message": "Subscription change initiated"}
-
-def calculate_next_billing_date():
-    # You can implement logic for the next billing date. For example, for monthly plans:
-    return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)     

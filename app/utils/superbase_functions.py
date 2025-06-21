@@ -9,7 +9,7 @@ import json
 from decimal import Decimal
 import decimal
 from supabase import create_client, Client
-from app.utils.billing_functions import add_credits_to_user
+from app.utils.billing_functions import add_credits
 from app.utils.functions import load_config
 load_config()
 
@@ -125,7 +125,7 @@ def fetch_saved_streamers(user_id: str):
         .execute()
     )
     if not response.data:
-        raise Exception(response.error.message)
+        raise Exception(response)
     return response.data
 
 
@@ -163,8 +163,10 @@ async def get_folders(user_id: str):
         .eq("user_id", user_id)
         .execute()
     )
+    print(response)
     if not response.data:
-        return {"error": response.error.message}
+        return {"error": response}
+    
 
     # response.data is a list of folders with a nested `twitch_streamers` array containing count
     # transform to add streamer_count easily
@@ -175,20 +177,46 @@ async def get_folders(user_id: str):
         # optionally remove the nested twitch_streamers key if you don't want to send it
         folder.pop("twitch_streamers", None)
         folders.append(folder)
+
     return folders
 
 async def get_saved_streamers(user_id: str, folder_id: str):
     response = None
+
     if folder_id == "all":
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).execute()
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("saved_at", desc=True)
+            .execute()
+        )
+
     elif folder_id == "favourites":
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("is_favourite", True).execute()
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("is_favourite", True)
+            .order("saved_at", desc=True)
+            .execute()
+        )
+
     else:
-        response = supabase.from_("twitch_streamers").select("*").eq("user_id", user_id).eq("folder_id", folder_id).execute()
-
-
+        response = (
+            supabase
+            .from_("twitch_streamers")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("folder_id", folder_id)
+            .order("saved_at", desc=True)            
+            .execute()
+        )
     if not response.data:
         return []
+
     return response.data
 
 
@@ -221,7 +249,7 @@ async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
     )
 
     if not response.data:
-        return {"error": response.error.message}
+        return {"error": response}
     return {"success": True}
 
 
@@ -263,8 +291,7 @@ async def initialize_user_onSignup(user_id: str):
     # Free plan default setup
     FREE_CREDITS = 25
 
-    add_credits_to_user(user_id,"Signup Bonus", FREE_CREDITS, "bonus")
-
+    add_credits(user_id,"Signup Bonus", FREE_CREDITS, "bonus")
 
 def add_notification(user_id: str,title: str,  message: str):
     supabase.from_("notifications").insert({
