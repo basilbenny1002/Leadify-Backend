@@ -6,6 +6,7 @@ from playwright.sync_api import sync_playwright
 # import asyncio
 from concurrent.futures import ThreadPoolExecutor
 # from proxybroker import Broker
+from bs4 import BeautifulSoup
 import requests
 import json
 import sys
@@ -19,6 +20,7 @@ import brotli
 import zstandard as zstd
 import io
 import json
+import os
 import requests
 import re
 import time
@@ -338,13 +340,8 @@ def scrape_twitch_about(url):
             check=True
         )
 
-        # Parse the JSON output from the Node.js script
-        # print(f"RESULT IS {result} and STDOUT THINGY IS {result.stdout}")
-        # print(result.stdout)
         return result.stdout
-        # data = json.loads(result.stdout)
-        # #print(data)
-        # return data
+
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e.stderr}", flush=True)
@@ -468,7 +465,6 @@ def try_parse_json(response):
         except Exception as e:
             raise ValueError("All decoding methods failed") from e
 def extract_urls(text):
-    # Regex pattern for URLs
     url_pattern = r'https?://[^\s<>"]+|www\.[^\s<>"]+'
     return re.findall(url_pattern, text)
 
@@ -484,7 +480,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         'accept': '*/*',
         'accept-encoding': 'gzip, deflate, br, zstd',
         'accept-language': 'en-US',
-        'authorization': 'OAuth z61c9og3og2cfy2npqdwnl7f4k0tud', #NOT NECESSARY
+        # 'authorization': '', #NOT NECESSARY
         'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
         'client-session-id': f'{session_id}', #ANY RANDOM ONE SHOUDL WORK
         'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
@@ -548,8 +544,6 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
     }
     ]""".strip() 
     payload = payload_template.replace("__CHANNEL_NAME__", channel_name).replace("__CHANNEL_ID__", channel_id)
-    # print("Payload: ", payload)
-    # print("Headers: ", HEADERS)
     if not session:
         resp = requests.post(URL, headers=HEADERS, data=payload)
     else:    
@@ -563,19 +557,11 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         print(f"HTTP error: {e} (status {resp.status_code})")
         print(resp, flush=True)
         print(resp.status_code)
-        return {"emails": emails, "socials": socials}
-    
-    # print("Response status:", resp.status_code)
-    # print("\n\n\n", flush=True)
-    # print("Response text:", resp.text, flush=True)
-    # print("\n\n\n", flush=True)
+        return get_twitch_details_aws()   
 
     data = try_parse_json(resp)
-    # data = resp.json()
-    # print("Data: ", data, flush=True)
-    # data = resp.json()
+
     better_data = json.loads(json.dumps(data, indent=2, ensure_ascii=False)) 
-    # print("Better data: ", better_data, flush=True)
 
     try:
         for link in better_data[1]['data']['user']['channel']['socialMedias']:
@@ -583,12 +569,12 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
             socials.append(link['url'])
     except TypeError as e:
         print(f"TypeError First loop: {e} (status {resp.status_code})")
+    
     except Exception as e:
         print(f"Error First loop : {e} (status {resp.status_code})")
         
     try:
         for panel in better_data[2]['data']['user']['panels']:
-                # print(panel['linkURL'])
             url = []
             description = panel.get('description')
             if description:
@@ -603,8 +589,10 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
                 print("No URL found for this panel.")
     except TypeError as e:
         print(f"TypeError Second loop: {e} (status {resp.status_code})")
+        return get_twitch_details_aws()
     except Exception as e:
         print(f"Error Second loop: {e} (status {resp.status_code})")
+        return get_twitch_details_aws()
         
 
 
@@ -613,6 +601,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
     if len(socials) < 1:
         print(resp.text, flush=True)
         print(resp.status_code)
+        return get_twitch_details_aws()
     return {"emails": emails, "links": list(set(socials))}
 
 
@@ -650,53 +639,89 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
 # async def get_proxy():
 #     proxy = await Broker().find(types=['HTTP', 'HTTPS'], limit=1)
 #     return proxy[0]
-def fetch_proxies():
-    url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=https&timeout=2000&country=all&ssl=all&anonymity=elite"
-    response = requests.get(url)
-    proxies = [line.strip() for line in response.text.splitlines() if line.strip()]
-    return proxies
+# def fetch_proxies():
+#     url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=https&timeout=2000&country=all&ssl=all&anonymity=elite"
+#     response = requests.get(url)
+#     proxies = [line.strip() for line in response.text.splitlines() if line.strip()]
+#     return proxies
 
-# Step 2: Check if a proxy works
-def is_proxy_alive(proxy):
-    proxy_dict = {
-        "http": f"http://{proxy}",
-        "https": f"http://{proxy}"  # yes, http:// even for HTTPS requests
-    }
-    try:
-        r = requests.get("https://httpbin.org/ip", proxies=proxy_dict, timeout=5)
-        if r.status_code == 200:
-            return proxy_dict
-    except:
-        pass
-    return None
+# # Step 2: Check if a proxy works
+# def is_proxy_alive(proxy):
+#     proxy_dict = {
+#         "http": f"http://{proxy}",
+#         "https": f"http://{proxy}"  # yes, http:// even for HTTPS requests
+#     }
+#     try:
+#         r = requests.get("https://httpbin.org/ip", proxies=proxy_dict, timeout=5)
+#         if r.status_code == 200:
+#             return proxy_dict
+#     except:
+#         pass
+#     return None
 
-# Step 3: Filter working proxies (multi-threaded)
-def get_working_proxies(limit=10):
-    raw_proxies = fetch_proxies()
-    working = []
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        for result in executor.map(is_proxy_alive, raw_proxies):
-            if result:
-                working.append(result)
-            if len(working) >= limit:
-                break
-    return working
+# # Step 3: Filter working proxies (multi-threaded)
+# def get_working_proxies(limit=10):
+#     raw_proxies = fetch_proxies()
+#     working = []
+#     with ThreadPoolExecutor(max_workers=20) as executor:
+#         for result in executor.map(is_proxy_alive, raw_proxies):
+#             if result:
+#                 working.append(result)
+#             if len(working) >= limit:
+#                 break
+#     return working
+
+
+    
+
+def get_twitch_details_aws(url: str, ):
+    
+    aws_url = str(os.getenv("AWS_URL")) + f"?url={url}"
+   
+    headers = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept-Encoding": "gzip, deflate",
+    "Accept-Language": "en-US,en;q=0.9,en-IN;q=0.8",
+    "Cache-Control": "max-age=0",
+    "Connection": "keep-alive",
+    "Host": "13.233.103.195:4000",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+    "If-None-Match": 'W/"22-NSZY4z+HRQ1fWFbBHq/9+UOjJ2s"'
+}
+
+    response = requests.get(aws_url, headers=headers, timeout=30)
+    if response.status_code != 200:
+        print(f"there seems to be some isssuess: {response.status_code}")
+        print(response.text)
+        return{
+            "links": [], 
+            "emails": []
+        }
+    if "twitch" in url.lower():
+        data = response.json()
+        links = data['links']
+        mails = data['emails']
+        return{
+            "links":list(set(links)),
+            "emails": list(set(mails))
+        }
+    elif "instagram" in url.lower():
+        print(response.status_code)
+        with open("responssadsdfdsfse.txt","w", encoding="utf-8") as file:
+            file.write(response.text)
+        raise NotImplementedError
+    return{
+            "links": [], 
+            "emails": []
+        }
+
+
 
 if __name__ == "__main__":
-    # print(get_twitch_details("thinkingmansvalo", "783648767"))
 
-    # Create a session
-    session = requests.Session()
-
-    # Send GET request to Twitch
-    response = session.get("https://www.twitch.tv")
-
-    # Get cookies from the session
-    cookies = session.cookies
-
-    # Print all cookie names and values
-    print("Cookies received from Twitch.tv:\n")
-    for cookie in cookies:
-        print(f"{cookie.name} = {cookie.value}")
+    # print(get_twitch_details_aws("https://www.instagram.com/phoenixsclive/"))
     pass
+
+
                 
