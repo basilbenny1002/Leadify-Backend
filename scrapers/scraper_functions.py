@@ -475,6 +475,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         session_id = generate_device_id(16, only_a_to_d=True).lower()
     if not dev_id:
         generate_device_id(32)
+    channel_url = f"https://www.twitch.tv/{channel_name}/about"
 
     HEADERS = {
         'accept': '*/*',
@@ -557,7 +558,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         print(f"HTTP error: {e} (status {resp.status_code})")
         print(resp, flush=True)
         print(resp.status_code)
-        return get_twitch_details_aws()   
+        return get_twitch_details_aws(channel_url)   
 
     data = try_parse_json(resp)
 
@@ -589,10 +590,10 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
                 print("No URL found for this panel.")
     except TypeError as e:
         print(f"TypeError Second loop: {e} (status {resp.status_code})")
-        return get_twitch_details_aws()
+        return get_twitch_details_aws(channel_url)
     except Exception as e:
         print(f"Error Second loop: {e} (status {resp.status_code})")
-        return get_twitch_details_aws()
+        return get_twitch_details_aws(channel_url)
         
 
 
@@ -601,7 +602,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
     if len(socials) < 1:
         print(resp.text, flush=True)
         print(resp.status_code)
-        return get_twitch_details_aws()
+        return get_twitch_details_aws(channel_url)
     return {"emails": emails, "links": list(set(socials))}
 
 
@@ -720,7 +721,7 @@ def get_twitch_details_aws(url: str, ):
 
 if __name__ == "__main__":
 
-    # print(get_twitch_details_aws("https://www.instagram.com/phoenixsclive/"))
+    # print(get_twitch_details_aws("https://www.instagram.com/phoenixsclive/about"))
     pass
 
 
