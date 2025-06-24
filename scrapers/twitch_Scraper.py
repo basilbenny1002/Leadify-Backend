@@ -142,7 +142,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id,
     try:
         result = {
             'username': streamer['user_name'],
-            'channel url': f"https://www.twitch.tv/{streamer['user_name']}",
+            'channel_url': f"https://www.twitch.tv/{streamer['user_name']}",
             'followers': streamer['followers'],
             'viewer_count': streamer['viewer_count'],
             'language': streamer['language'],
@@ -374,6 +374,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
 
     datas = {
         'username': [],
+        'channel_url': [],
         'followers': [],
         'viewer_count': [],
         'language': [],
