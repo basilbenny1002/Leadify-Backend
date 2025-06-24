@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 # import asyncio
 from concurrent.futures import ThreadPoolExecutor
 # from proxybroker import Broker
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 import requests
 import json
 import sys
