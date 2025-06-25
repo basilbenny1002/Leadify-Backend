@@ -474,7 +474,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
     if not session_id:
         session_id = generate_device_id(16, only_a_to_d=True).lower()
     if not dev_id:
-        generate_device_id(32)
+        dev_id = generate_device_id(32)
     channel_url = f"https://www.twitch.tv/{channel_name}/about"
 
     HEADERS = {
@@ -484,6 +484,7 @@ def get_twitch_details(channel_name, channel_id, session: requests.Session = Non
         # 'authorization': '', #NOT NECESSARY
         'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
         'client-session-id': f'{session_id}', #ANY RANDOM ONE SHOUDL WORK
+        "client-integrity":"v4.local.XCpudNS28Ah9UCC6dAwSVJhWVxYiHNM7iuIj9uzHArFAt0Hen-ty3Z0fdvRmTeAaa_Z18AguQ1ONWgVaoTssa4aroUvbdqrpjfVsGCWqd_AEAIdkxSKCbpnoNSFv7WlxSLCXIwOjDG6p-TrjOlB5AzH_Q6ujsZK1fFmL4YMNKljr2hPBoGxcFhwgQov3G9uh-RAi-E1zWW6zlNW1xZVCzDha0IXyBC9m9uvFpmRDrwdltT1ogNII8sm-EwY6zqACSk34CNHwzAveGT9Ue7A1buGgRN8hrh6SF9oPEFGL9ThLd_IuUsHJq_AFL3NPbh7J2JcpF2FfJqpUwQaias5BGUuaPE75qvK3SZ6-EpN6lCp7GBHVH3n9Z0bArLFzGEXjczeKEDuY7XR0DLGVA-Sv4jsVBKuegoLBHk6RpZrbSA_xnAzYj2D9WRcw8p-FD0RFH-HzHBfoVvPYQ-Id",
         'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
         'content-type': 'text/plain;charset=UTF-8',
         'origin': 'https://www.twitch.tv',
@@ -721,7 +722,44 @@ def get_twitch_details_aws(url: str, ):
 
 if __name__ == "__main__":
 
-    # print(get_twitch_details_aws("https://www.instagram.com/phoenixsclive/about"))
+    # print(get_twitch_details_aws("https://www.twitch.tv/thinkingmansvalo/about"))
+    # print(get_twitch_details("nightzvl", "1157290428"))
+
+    # s = requests.Session()
+    # session_id = generate_device_id(16, only_a_to_d=True).lower()
+    # dev_id = generate_device_id(32)
+    # # channel_url = f"https://www.twitch.tv/{channel_name}/about"
+
+    # HEADERS = {
+    #     'accept': '*/*',
+    #     'accept-encoding': 'gzip, deflate, br, zstd',
+    #     'accept-language': 'en-US',
+    #     # 'authorization': '', #NOT NECESSARY
+    #     'client-id': 'kimne78kx3ncx6brgo4mv6wki5h1ko', #HARDCODED CLIENT ID
+    #     'client-session-id': f'{session_id}', #ANY RANDOM ONE SHOUDL WORK
+    #     'client-version': 'de99b9bb-52a9-4694-9653-6d935ab0cbcc',
+    #     "client-integrity":"v4.local.XCpudNS28Ah9UCC6dAwSVJhWVxYiHNM7iuIj9uzHArFAt0Hen-ty3Z0fdvRmTeAaa_Z18AguQ1ONWgVaoTssa4aroUvbdqrpjfVsGCWqd_AEAIdkxSKCbpnoNSFv7WlxSLCXIwOjDG6p-TrjOlB5AzH_Q6ujsZK1fFmL4YMNKljr2hPBoGxcFhwgQov3G9uh-RAi-E1zWW6zlNW1xZVCzDha0IXyBC9m9uvFpmRDrwdltT1ogNII8sm-EwY6zqACSk34CNHwzAveGT9Ue7A1buGgRN8hrh6SF9oPEFGL9ThLd_IuUsHJq_AFL3NPbh7J2JcpF2FfJqpUwQaias5BGUuaPE75qvK3SZ6-EpN6lCp7GBHVH3n9Z0bArLFzGEXjczeKEDuY7XR0DLGVA-Sv4jsVBKuegoLBHk6RpZrbSA_xnAzYj2D9WRcw8p-FD0RFH-HzHBfoVvPYQ-Id"
+    #     ,'content-type': 'text/plain;charset=UTF-8',
+    #     'origin': 'https://www.twitch.tv',
+    #     'priority': 'u=1, i',
+    #     'referer': 'https://www.twitch.tv/',
+    #     'sec-ch-ua': '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+    #     'sec-ch-ua-mobile': '?0',
+    #     'sec-ch-ua-platform': '"Windows"',
+    #     'sec-fetch-dest': 'empty',
+    #     'sec-fetch-mode': 'cors',
+    #     'sec-fetch-site': 'same-site',
+    #     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+    #                     'AppleWebKit/537.36 (KHTML, like Gecko) '
+    #                     'Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
+    #     'x-device-id': f'{dev_id}' #ANY RANDOM ONE SHOULD'VE WORKED
+    # }
+    # body = {}
+    # resp = s.post("https://gql.twitch.tv/gql/integerity", headers=HEADERS)
+    # print(resp.status_code)
+    # print(resp.text)
+    # for values in resp.cookies:
+    #     print(values)
     pass
 
 
