@@ -469,6 +469,10 @@ def extract_urls(text):
     return re.findall(url_pattern, text)
 
 def get_twitch_details(channel_name, channel_id, session: requests.Session = None, dev_id=None, session_id = None):
+    return{
+            "links": [], 
+            "emails": []
+        }
     time.sleep(random.randint(1, 3)) # Random sleep to avoid rate limiting
     URL = 'https://gql.twitch.tv/gql'
     if not session_id:
@@ -720,10 +724,11 @@ def get_twitch_details_aws(url: str, ):
 
 
 
+
 if __name__ == "__main__":
 
     # print(get_twitch_details_aws("https://www.twitch.tv/thinkingmansvalo/about"))
-    # print(get_twitch_details("nightzvl", "1157290428"))
+    # print(get_twitch_details("wedidvalorant", "279761392"))
 
     # s = requests.Session()
     # session_id = generate_device_id(16, only_a_to_d=True).lower()
@@ -760,6 +765,22 @@ if __name__ == "__main__":
     # print(resp.text)
     # for values in resp.cookies:
     #     print(values)
+    
+    # headers = { "Content-Type": "application/json" }
+    # data =  {"channelName": "thinkingmansvalo", "channelID": "783648767", "userID": "meow"} 
+    
+    # resp = requests.post(url="http://localhost:3000/api/twitch-about", headers=headers, data=data)
+    resp = requests.post(
+    "http://localhost:3000/api/twitch-about",
+    data=json.dumps({"channelName": "thinkingmansvalo", "channelID": "783648767", "userID": "akjadskladadkabkdajd"}),
+    headers={"Content-Type": "application/json"},
+)
+    print(resp.status_code)
+    print(resp.json())
+    print(resp.text)
+    
+    
+    
     pass
 
 

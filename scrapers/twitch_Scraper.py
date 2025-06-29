@@ -23,7 +23,7 @@ active_scrapers = {}
 data_template = {
     "Stage": 0, "Rate":0 , "ETA": format_time(0), "Streamers":0,
     "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
-    "Done": False, "search_id": "", "download_url": "", "progress_data":[]
+    "Done": False, "search_id": "", "download_url": "", "progress_data":[], "data":None
 }
 def update_progress(user_id, values: dict):
     if user_id not in active_scrapers:
@@ -121,6 +121,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             }) 
 
             pbar.update(1)
+            active_scrapers[user_id]["data"] = streamers
 
 
 def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id, session_id, session):
@@ -396,6 +397,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         result = results_queue.get()
         for key in datas:
             datas[key].append(result[key])
+    update_progress(user_id=user_id, values={"data":datas})
 
 
     search_id_uuid = str(uuid.uuid4()) 
