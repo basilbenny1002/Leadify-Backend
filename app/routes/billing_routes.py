@@ -6,76 +6,26 @@ from fastapi import Depends, Header, HTTPException
 import jwt
 import os
 from supabase import create_client, Client
-from utils.authorization import verify_jwt
+from app.utils.billing_functions import deduct_credits
+from app.utils.authorization import verify_jwt
 import uuid
 
-SUPABASE_SECRET = os.getenv("JWT_SUPABASE_SECRET")
+class RevealRequest(BaseModel):
+    streamer_id: str
+
+# SUPABASE_SECRET = os.getenv("JWT_SUPABASE_SECRET")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-ACTION_COSTS = {
-    "streamer_search": 1,
-    "reveal_social_links": 1,
-    "reveal_email": 2,
-}
 
 
 router = APIRouter()
 
-def get_current_user_id(authorization: str = Header(...)):
-    token = authorization.split(" ")[1]
-    payload = jwt.decode(token, SUPABASE_SECRET, algorithms=["HS256"])
-    return payload['sub']  # supabase user_id is in sub claim
-
-class UseCreditsRequest(BaseModel):
-    action: str
-
-@router.post("/use-credits")
-def use_credits(data: UseCreditsRequest, user_id: str = Depends(get_current_user_id)):
-    action = data.action
-
-    if action not in ACTION_COSTS:
-        raise HTTPException(400, detail="Invalid action.")
-
-    cost = ACTION_COSTS[action]
-
-    # Get user
-    response = supabase.from_("users").select("*").eq("id", user_id).single().execute()
-    user = response.data
-
-    if not user:
-        raise HTTPException(404, detail="User not found.")
-
-    if user["credits"] < cost:
-        raise HTTPException(400, detail="Insufficient credits.")
-
-    # Deduct credits
-    new_credits = user["credits"] - cost
-    update_response = supabase.from_("users").update({"credits": new_credits}).eq("id", user_id).execute()
-
-    if update_response.status_code >= 400:
-        raise HTTPException(500, detail="Failed to update credits.")
-
-    # Insert credit transaction
-    transaction = {
-        "user_id": user_id,
-        "type": "usage",
-        "action": action,
-        "amount": cost,
-        "created_at": datetime.now(datetime.timezone.utc).isoformat()
-    }
-
-    insert_response = supabase.from_("credit_transactions").insert(transaction).execute()
-
-    if insert_response.status_code >= 400:
-        raise HTTPException(500, detail="Failed to record transaction.")
-
-    return {
-        "success": True,
-        "remaining_credits": new_credits
-    }
-
+# def get_current_user_id(authorization: str = Header(...)):
+#     token = authorization.split(" ")[1]
+#     payload = jwt.decode(token, SUPABASE_SECRET, algorithms=["HS256"])
+#     return payload['sub']  # supabase user_id is in sub claim
 
 @router.post("/buy-credits")
 async def buy_credits(
@@ -116,3 +66,50 @@ async def buy_credits(
         raise HTTPException(status_code=500, detail="Failed to log transaction")
 
     return {"success": True, "message": "Credits added and transaction logged"}
+
+@router.post("/reveal-socials")
+async def reveal_socials(
+    payload: RevealRequest,
+    userId: dict = Depends(verify_jwt),
+):
+    print(userId)
+    print(payload)
+    streamer_id = payload.streamer_id
+
+    try:
+        # Deduct credits for revealing socials
+        await deduct_credits(userId, "reveal_socials")
+        print("Credits deducted")
+        # Update the socials_revealed column for this user + streamer
+        supabase.from_("twitch_streamers") \
+                .update({"socials_revealed": True}) \
+                .eq("id", streamer_id) \
+                .eq("user_id", userId) \
+                .execute()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success", "message": "Social links revealed"}
+
+@router.post("/reveal-email")
+async def reveal_email(
+    payload: RevealRequest,
+    userId: dict = Depends(verify_jwt),
+):
+    streamer_id = payload.streamer_id
+
+    try:
+        # Deduct credits for revealing email
+        await deduct_credits(userId, "reveal_email")
+
+        # Update the email_revealed column for this user + streamer
+        supabase.table("twitch_streamers") \
+            .update({"email_revealed": True}) \
+            .eq("id", streamer_id) \
+            .eq("user_id", userId) \
+            .execute()
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success", "message": "Email revealed"}
