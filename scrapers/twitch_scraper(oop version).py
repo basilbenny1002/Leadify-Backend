@@ -35,16 +35,16 @@ class Creator:
     
     
 class Scrape:
-    def __init__(self):
+    def __init__(self, max_followers: int, min_followers: int, viewer_count: int, user_id: str, game_id: str, language: str):
         self.access_token = os.getenv("access_token") 
         self.client_id = os.getenv("client_id") 
-        self.max_followers
-        self.min_followers
-        self.viewer_count
-        self.user_id
-        self.game_id
+        self.max_followers = max_followers
+        self.min_followers = min_followers
+        self.viewer_count = viewer_count
+        self.user_id = user_id
+        self.game_id = game_id
         # self.game_name
-        self.language
+        self.language = language
         self.streamers = self.get_streams()    
         self.stage
         self.all_streamer_count = len(self.streamers)
@@ -78,34 +78,37 @@ class Scrape:
         return all_streams
 
 
-        raise NotImplemented
+        # raise NotImplemented
     def filter_streamer(self):
         for i in range(self.all_streamer_count):
             follower_count = self.get_follower_count(self.streamers[i]["user_id"])
             if follower_count > self.min_followers and follower_count < int(self.max_follower) and self.classify(choice_l=self.language, min_viewer_c=self.viewer_count, streams=self.streamers[i]) and self.is_valid_text(self.streamers[i]["user_name"]):        
-                self.filtered_streamers.append({
-                'username': self.streamers[i]['user_name'],
-                "channel_id": self.streamers[i]['user_id'],
-                'channel_url': f"https://www.twitch.tv/{self.streamers[i]['user_name']}",
-                'followers': self.streamers[i]['followers'],
-                'viewer_count': self.streamers[i]['viewer_count'],
-                'language': self.streamers[i]['language'],
-                'game_name': self.streamers[i]['game_name'],
-                'discord': [],
-                'youtube': [],
-                'subscriber_count': 0,
-                'gmail': [],
-                "instagram": [],
-                "twitter": [],
-                "facebook":[],
-                "tiktok": [],
-                "linkedin": []
-            })
-            
+                self.filtered_streamers.append(Creator(self.streamers[i]['user_name'], 
+                                                       self.streamers[i]['user_id'], 
+                                                       self.streamers[i]['viewer_count'], 
+                                                       self.streamers[i]['language'],  
+                                                       follower_count, 
+                                                       self.streamers[i]['game_name']))
+                                                       
+            #     self.filtered_streamers.append({
+            #     'username': self.streamers[i]['user_name'],
+            #     "channel_id": self.streamers[i]['user_id'],
+            #     'channel_url': f"https://www.twitch.tv/{self.streamers[i]['user_name']}",
+            #     'followers': self.streamers[i]['followers'],
+            #     'viewer_count': self.streamers[i]['viewer_count'],
+            #     'language': self.streamers[i]['language'],
+            #     'game_name': self.streamers[i]['game_name'],
+            #     'discord': [],
+            #     'youtube': [],
+            #     'subscriber_count': 0,
+            #     'gmail': [],
+            #     "instagram": [],
+            #     "twitter": [],
+            #     "facebook":[],
+            #     "tiktok": [],
+            #     "linkedin": []
+            # })
 
-
-
-        # raise NotImplemented
     def classify(self, streams):
         if self.language == streams['language']:
             if int(self.min_viewer_c) < int(streams['viewer_count']):
@@ -139,8 +142,3 @@ class Scrape:
     def is_valid_text(text: str) -> bool:
         pattern = r'^[a-zA-Z0-9~`!@#$%^&*()_\-+={}\[\]:;"\'<>,.?/\\| ]+$'
         return bool(re.match(pattern, text))
-
-
-
-
-    
