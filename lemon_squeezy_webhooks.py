@@ -5,12 +5,6 @@ import hashlib
 import os
 import httpx
 from supabase import create_client, Client
-from dotenv import load_dotenv
-from dateutil import parser
-
-from app.utils.billing_functions import add_credits_to_user, process_order_event
-
-load_dotenv()
 
 router = APIRouter()
 
@@ -38,8 +32,6 @@ async def handle_lemon_webhook(
 ):
     raw_body = await request.body()
 
-    print(raw_body)
-
     if not x_signature or not verify_signature(raw_body, x_signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -48,17 +40,10 @@ async def handle_lemon_webhook(
     custom_data = payload.get("meta", {}).get("custom_data", {})
     user_id = custom_data.get("user_id")
 
-    print(payload)
-
-    print(user_id)
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user ID")
 
-    print(event_name)
-    if event_name.startswith("subscription_"):
-        await process_subscription_event(event_name, payload, user_id)
-    elif event_name == "order_created":
-        await process_order_event(payload, user_id)
+    await process_subscription_event(event_name, payload, user_id)
     return {"status": "success"}
 
 async def process_subscription_event(event_name: str, payload: dict, user_id: str):
@@ -66,10 +51,10 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
     attributes = data.get("attributes", {})
     subscription_id = data.get("id")
     status = attributes.get("status")
-    renews_at = parser.parse(attributes.get("renews_at")) if attributes.get("renews_at") else None
+    renews_at = attributes.get("renews_at")
     ends_at = attributes.get("ends_at")
     variant_id = attributes.get("variant_id")
-    variant_name = attributes.get("variant_name", "Unknown Plan")
+    variant_name = attributes.get("variant_name")
     product_id = attributes.get("product_id")
     product_name = attributes.get("product_name")
     billing_anchor = attributes.get("billing_anchor")
@@ -103,27 +88,15 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
             supabase.table("subscriptions").insert(sub_data).execute()
         print("Subscription created by", user_id)
 
-        # Add credits on new subscription
-        await add_credits_to_user(user_id, variant_id,"Subscription Monthly Renewal", "subscription")
-
     elif event_name == "subscription_updated":
         supabase.table("subscriptions").update(sub_data).eq("user_id", user_id).execute()
         print("Subscription updated for", user_id)
-
-        # Optional: Add credits if you want on renewals or upgrades
-        # await add_credits_to_user(user_id, variant_name, "subscription_updated")
 
     elif event_name in ["subscription_cancelled", "subscription_expired"]:
         supabase.table("subscriptions").update({
             "status": "cancelled",
             "ends_at": ends_at
         }).eq("user_id", user_id).execute()
-
-        # Set user as not premium
-        supabase.table("users").update({
-            "subscription_status": False
-        }).eq("id", user_id).execute()
-
         print("Subscription cancelled/expired for", user_id)
 
     elif event_name == "subscription_resumed":
@@ -134,10 +107,7 @@ async def process_subscription_event(event_name: str, payload: dict, user_id: st
         }).eq("user_id", user_id).execute()
         print("Subscription resumed for", user_id)
 
-        # Add credits on resume as well
-        await add_credits_to_user(user_id, variant_name, "subscription_resumed")
-
-    # Always update user subscription status
+    # Always update users table
     supabase.table("users").update({
         "subscription_status": status == "active",
     }).eq("id", user_id).execute()
@@ -189,4 +159,4 @@ async def update_subscription(payload: dict):
 
 def calculate_next_billing_date():
     # You can implement logic for the next billing date. For example, for monthly plans:
-    return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)     
+    return datetime.utcnow().replace(hour=0, minute=0, second=0) + datetime.timedelta(days=30)

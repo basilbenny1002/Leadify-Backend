@@ -6,7 +6,7 @@ from fastapi import Depends, Header, HTTPException
 import jwt
 import os
 from supabase import create_client, Client
-from utils.authorization import verify_jwt
+from app.utils.authorization import verify_jwt
 import uuid
 
 SUPABASE_SECRET = os.getenv("JWT_SUPABASE_SECRET")
