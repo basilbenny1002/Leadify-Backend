@@ -18,3 +18,4 @@ Leadify-Backend\Scrapers\JS_components\proxies.js
 Leadify-Backend/Scrapers/JS_components/proxies.js
 Archive/node_modules/
 Archive\node_modules\
+*.env

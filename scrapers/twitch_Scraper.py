@@ -3,8 +3,9 @@ import pandas as pd
 from scrapers.scraper_functions import get_follower_count, scrape_twitch_about, scrape_twitter_profile, extract_emails, scrape_youtube, get_live_streams, is_valid_email, get_subscriber_count, is_valid_text, get_twitch_game_id
 from tqdm import tqdm
 from scrapers.scraper_functions import scrape_twitter
-from scrapers.scraper_functions import convert_to_percentage, get_twitch_details, format_time
+from scrapers.scraper_functions import convert_to_percentage, get_twitch_details, format_time, generate_device_id
 import logging
+import random
 import datetime
 import time
 from dotenv import load_dotenv
@@ -12,16 +13,17 @@ import threading
 import queue
 from supabase import create_client
 import uuid
+import requests
 import os
 from app.utils.superbase_functions import upload_csv 
 from scrapers.scraper_functions import AnyValue, classify
-
+from app.utils.superbase_functions import add_notification
 
 active_scrapers = {}
 data_template = {
     "Stage": 0, "Rate":0 , "ETA": format_time(0), "Streamers":0,
     "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
-    "Done": False, "search_id": "", "download_url": "", "progress_data":[]
+    "Done": False, "search_id": "", "download_url": "", "progress_data":[], "data":None
 }
 def update_progress(user_id, values: dict):
     if user_id not in active_scrapers:
@@ -119,10 +121,11 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
             }) 
 
             pbar.update(1)
+            # active_scrapers[user_id] = streamers
 
 
-def process_streamer(streamer, index, user_id, streamers, results_queue):
-    
+def process_streamer(streamer, index, user_id, streamers, results_queue, dev_id, session_id, session):
+    print("Process stremaer line 128", flush=True)
     start_time = time.time()
     if not is_valid_text(streamer['user_name']):
         logging.warning(f"Invalid username: {streamer['user_name']}")
@@ -140,7 +143,8 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
     try:
         result = {
             'username': streamer['user_name'],
-            'channel url': f"https://www.twitch.tv/{streamer['user_name']}",
+            "channel_id": streamer['user_id'],
+            'channel_url': f"https://www.twitch.tv/{streamer['user_name']}",
             'followers': streamer['followers'],
             'viewer_count': streamer['viewer_count'],
             'language': streamer['language'],
@@ -162,7 +166,7 @@ def process_streamer(streamer, index, user_id, streamers, results_queue):
 
     # Scrape Twitch about section with error handling
     try:
-        response = get_twitch_details(streamer['user_name'], streamer['user_id'])
+        response = get_twitch_details(streamer['user_name'], streamer['user_id'], dev_id=dev_id, session_id=session_id, session=session)
         if not isinstance(response, dict):
             logging.error(f"Invalid response type for {streamer['user_name']}: {type(response)}")
             with lock:
@@ -310,13 +314,33 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     Main function to start the scraping process.
     
     """
+    update_progress(user_id, values={
+    "Stage": 0, "Rate": 0, "ETA": format_time(0), "Streamers": 0,
+    "Completed": 0, "Percentage": 0, "Total_Streamers": 0, 
+    "Done": False, "search_id": "", "download_url": ""
+    })  
+    # proxies = get_working_proxies()
+    # choosen_proxies = random.choice(proxies)
+    session = requests.Session()
+    resp = session.get("https://www.twitch.tv")
+    # session.proxies.update(choosen_proxies)
+    cookies = session.cookies
+    session_id = generate_device_id(16, only_a_to_d=True).lower()
+    device_id = generate_device_id(32)
+    for cookie in cookies:
+        if "session" in str(cookie):
+            session_id = cookie.value
+        if "unique" in str(cookie):
+            device_id = cookie.value
+    
+    # r = session.get("https://www.twitch.tv")
     lock = threading.Lock()
 
     streamers = []
     initial(user_id=user_id, streamers=streamers, min_followers=min_f, max_followers=max_f, choice_l=choice_l, min_viewer_count=min_viewer_c, game_id=c)  # Initialize the variables and get the list of streamers
     
     update_progress(user_id, values={
-    "Stage": 3, "Rate": 0, "ETA": format_time(0), 
+    "Stage": 2, "Rate": 0, "ETA": format_time(0), 
     "Completed": 0, "Percentage": 0})
 
     threads = []
@@ -328,7 +352,7 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     print(f"Number of streamers: {len(streamers)}")
     for i in tqdm(range(len(streamers)), desc="Getting more info"): 
         try:
-            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue))
+            thread = threading.Thread(target=process_streamer, args=(streamers[i], i, user_id, streamers, results_queue, device_id, session_id, session))
             thread.start()
             threads.append(thread)
             all_threads.append(thread)
@@ -349,9 +373,12 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
             update_progress(user_id, values={
             "Completed": len(streamers), "Percentage": 100
             })
+    print("Process stremer done line 376", flush=True)
 
     datas = {
         'username': [],
+        "channel_id": [],
+        'channel_url': [],
         'followers': [],
         'viewer_count': [],
         'language': [],
@@ -366,43 +393,72 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
         "tiktok": [],
         "linkedin": [] 
     }
-    update_progress(user_id, values={
-    "Stage": 4, "Rate": 0, "ETA": format_time(0)})
+    
 
+    
+
+    update_progress(user_id, values={
+    "Stage": 2, "Rate": 0, "ETA": format_time(0), })
+    
     while not results_queue.empty():
         result = results_queue.get()
         for key in datas:
             datas[key].append(result[key])
+    print("done appendign datas line 407", flush=True)
+    print(len(datas), flush=True)
+    print(datas)
+
+    modified_data = [{
+        'username': datas["username"][i],
+        "channel_id": datas["channel_id"][i],
+        'channel_url': datas["channel_url"][i],
+        'followers': datas["followers"][i],
+        'viewer_count': datas["viewer_count"][i],
+        'language': datas["language"][i],
+        'game_name': datas["game_name"][i],
+        'discord': [],
+        'youtube': [],
+        'gmail': [],
+        'subscriber_count': [],
+        "instagram": [],
+        "twitter": [],
+        "facebook":[],
+        "tiktok": [],
+        "linkedin": []
+    } for i in range(len(datas["username"]))]
+    print("Done making the modified data, lie 426", flush=True)
+
+    update_progress(user_id=user_id, values={"data":modified_data, "Done": True})
 
 
-    search_id_uuid = str(uuid.uuid4()) 
-    file_name = f"{user_id}_{search_id_uuid}.csv"
-    df = pd.DataFrame(datas)
-    df.to_csv(path_or_buf=file_name, index=False)
-    logging.info(f"Data saved to test.csv")
-    if type(choice_l) == AnyValue:
-        choice_l = ""
-    if type(min_f) == AnyValue:
-        min_f = 0
-    if type(max_f) == AnyValue:
-        max_f = 100000000000000
-    if type(min_viewer_c) == AnyValue:
-        min_viewer_c = 0
+    # search_id_uuid = str(uuid.uuid4()) 
+    # file_name = f"{user_id}_{search_id_uuid}.csv"
+    # df = pd.DataFrame(datas)
+    # df.to_csv(path_or_buf=file_name, index=False)
+    # logging.info(f"Data saved to test.csv")
+    # if type(choice_l) == AnyValue:
+    #     choice_l = ""
+    # if type(min_f) == AnyValue:
+    #     min_f = 0
+    # if type(max_f) == AnyValue:
+    #     max_f = 100000000000000
+    # if type(min_viewer_c) == AnyValue:
+    #     min_viewer_c = 0
 
-    filters = {
-        "min_followers": min_f,
-        "max_followers": max_f,
-        "language": choice_l,
-        "min_viewers": min_viewer_c,
-        "category": c
-    }
-    upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
+    # filters = {
+    #     "min_followers": min_f,
+    #     "max_followers": max_f,
+    #     "language": choice_l,
+    #     "min_viewers": min_viewer_c,
+    #     "category": c
+    # }
+    # upload_csv(search_id_uuid, user_id, filters, file_name, active_scrapers[user_id]["Total_Streamers"], active_scrapers[user_id]["Streamers"])
 
-
-    update_progress(user_id, values={
-    "Stage": 5,"Done": True, "search_id": search_id_uuid,
-      "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
-    })  
+    # add_notification(user_id, "Search Complete",f"Found {active_scrapers[user_id]['Streamers']} streamers")
+    # update_progress(user_id, values={
+    # "Stage": 2,"Done": True, "search_id": search_id_uuid,
+    #   "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
+    # })  
     time.sleep(10)
-    os.remove(file_name)
+    # os.remove(file_name)
     remove_progress(user_id)

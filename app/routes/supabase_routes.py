@@ -131,3 +131,5 @@ async def delete_filter_route(filter_id: str, request: Request):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
