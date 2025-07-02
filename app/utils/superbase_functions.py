@@ -315,3 +315,51 @@ def clean_old_notifications():
     # 2. Delete read notifications older than 3 days
     three_days_ago = (now - datetime.timedelta(days=3)).isoformat()
     supabase.from_("notifications").delete().lt("created_at", three_days_ago).eq("read", True).execute()
+
+
+def get_search_history(user_id: str):
+    user_id = uuid.UUID(user_id)
+    print("get_search_history function called", flush=True)
+    try:
+        response = supabase.table("search_history").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        data = response.data
+
+        history = []
+        for row in data:
+            dt = datetime.datetime.fromisoformat(row["created_at"])
+            filters = []
+
+            if row.get("language"):
+                filters.append(row["language"])
+
+            min_f = row.get("min_followers")
+            max_f = row.get("max_followers")
+            if min_f is not None and max_f is not None:
+                filters.append(f"{min_f}-{max_f} followers")
+            elif min_f is not None:
+                filters.append(f"{min_f}+ followers")
+
+            if row.get("min_viewers") is not None:
+                filters.append(f"{row['min_viewers']}+ viewers")
+
+            history.append({
+                "id": row.get("search_id", 0),
+                "title": row.get("title", ""),
+                "date": dt.strftime("%B %d, %Y"),
+                "time": dt.strftime("%I:%M %p").lstrip("0"),
+                "results": row.get("result_count", 0),
+                "category": row.get("category", ""),
+                "filters": filters
+            })
+
+        return JSONResponse(content={
+            "status": "success",
+            "data": history
+        }, status_code=200)
+
+    except Exception as e:
+        print(f"EXCEPTION OFFUCRED {e}", flush=True)
+        return JSONResponse(content={
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
