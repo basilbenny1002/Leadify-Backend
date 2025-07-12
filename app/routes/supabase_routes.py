@@ -7,12 +7,16 @@ from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite
+from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
 from typing import Optional
 
 load_config()
 
 
+class Notifications(BaseModel):
+    user_id: str
+    title: str
+    message: str
 
 class FolderCreate(BaseModel):
     name: str
@@ -131,5 +135,37 @@ async def delete_filter_route(filter_id: str, request: Request):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/search_history")
+def getSearchHistory(user_id: str):
+    return get_search_history(user_id=user_id)
+    
+    
+@router.post("/add_notifications")
+def addNotifications(notification: Notifications):
+    try:
+        add_notification(notification.user_id, notification.title, notification.message)
+    except Exception as e:
+        print(e, flush=True)
+        return JSONResponse(status_code=500, content={"message": "Failed"})
+    else:
+        return JSONResponse(status_code=200, content={"message": "Success"})
+
+
+@router.post("/notifications")
+async def notifications_handler(request: Request):
+    body = await request.json()
+    user_id = body.get("user_id")
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    try:
+        notifications = get_user_notifications(user_id)
+        return {"success": True, "notifications": notifications}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+        
     
     
