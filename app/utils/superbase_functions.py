@@ -302,7 +302,7 @@ def add_notification(user_id: str,title: str,  message: str):
         "title": title,
         "description": message,
         "read": False,
-        "created_at": datetime.datetime.now().isoformat(),
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "type": "info"
     }).execute()
 
@@ -365,6 +365,22 @@ def get_search_history(user_id: str):
             "message": str(e)
         }, status_code=500)
     
+def add_search_history(user_id, title, result_count, category, language, min_followers, max_followers, min_viewers ):
+    try:
+        supabase.from_("search_history").insert({
+            "user_id": user_id,
+        "title": title,
+        "result_count": result_count,
+        "category": category,
+        "language": language,
+        "min_followers": min_followers,
+        "max_followers": max_followers,
+        "min_viewers": min_viewers
+        }).execute()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": "Error occurred {e}"})
+    else:
+        return JSONResponse(status_code=200, content={"message": "Success"})
 
 def delete_notification(user_id: str):
 
@@ -410,3 +426,4 @@ def get_user_notifications(user_id: str):
     ]
 
     return notifications
+

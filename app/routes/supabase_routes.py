@@ -7,10 +7,20 @@ from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
+from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
 from typing import Optional
 
 load_config()
+
+class History(BaseModel):
+    user_id: str
+    title: str
+    result_count: int
+    category: str
+    language: str
+    min_followers: int
+    max_followers: int
+    min_viewers: int
 
 
 class Notifications(BaseModel):
@@ -136,6 +146,13 @@ async def delete_filter_route(filter_id: str, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+
+@router.post("/search_history")
+def addSearchHistory(history: History):
+    return add_search_history()
+
+
+    
 @router.get("/search_history")
 def getSearchHistory(user_id: str):
     return get_search_history(user_id=user_id)
@@ -165,6 +182,7 @@ async def notifications_handler(request: Request):
         return {"success": True, "notifications": notifications}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
         
     
