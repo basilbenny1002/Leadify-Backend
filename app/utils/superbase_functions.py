@@ -11,6 +11,7 @@ import decimal
 from supabase import create_client, Client
 from app.utils.billing_functions import add_credits
 from app.utils.functions import load_config
+import pandas as pd 
 # from datetime import datetime, timezone
 load_config()
 
@@ -327,7 +328,9 @@ def get_search_history(user_id: str):
 
         history = []
         for row in data:
-            dt = datetime.datetime.fromisoformat(row["created_at"])
+            # dt = datetime.datetime.fromisoformat(row["created_at"])
+            dt = datetime.datetime.fromisoformat(row["created_at"]).astimezone(datetime.timezone.utc)
+
             filters = []
 
             if row.get("language"):
@@ -346,8 +349,9 @@ def get_search_history(user_id: str):
             history.append({
                 "id": row.get("search_id", 0),
                 "title": row.get("title", ""),
-                "date": dt.strftime("%B %d, %Y"),
-                "time": dt.strftime("%I:%M %p").lstrip("0"),
+                "created_at": dt.isoformat().replace("+00:00", "Z"),
+                # "date": dt.strftime("%B %d, %Y"),
+                # "time": dt.strftime("%I:%M %p").lstrip("0"),
                 "results": row.get("result_count", 0),
                 "category": row.get("category", ""),
                 "filters": filters
@@ -428,11 +432,13 @@ def get_user_notifications(user_id: str):
     print(response, flush=True)
 
     notifications = [
+        
         {
+            
             "id": n["id"],
             "title": n["title"],
             "description": n["description"],
-            "time": format_time_ago(n["created_at"]),
+            "time": datetime.datetime.fromisoformat(n["created_at"]).astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
             "unread": not n["read"],
             "type": n.get("type", None),
             "created_at": n["created_at"],
@@ -441,4 +447,73 @@ def get_user_notifications(user_id: str):
     ]
 
     return notifications
+
+def format_bytes(size_bytes):
+    units = ["Bytes", "KB", "MB", "GB", "TB"]
+    i = 0
+    while size_bytes >= 1024 and i < len(units) - 1:
+        size_bytes /= 1024
+        i += 1
+    return f"{size_bytes:.2f} {units[i]}"
+
+def upload_file(user_id: str, data: json, file_type: str, file_name: str):
+    try:
+        df = pd.DataFrame(data)
+        unique_name = f"{uuid.uuid4()}_{file_name}"
+        if file_type == "csv":
+            df.to_csv(path_or_buf=unique_name, index=False)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Error occurred {e}"})
+    try:
+        file_size_bytes = os.path.getsize(unique_name)
+        size = format_bytes(file_size_bytes)
+        with open(unique_name, "rb") as f:
+            res = supabase.storage.from_("results").upload(unique_name, f)
+            print(res)
+        # download_url = supabase.storage.from_("results").get_public_url(unique_name)
+        res =  supabase.table("export_history").insert({ 
+        "user_id": user_id,
+        "file_name": file_name, 
+        "file_id": unique_name, 
+        "file_size": size,
+        "file_type": file_type,
+        "record_count": len(data) 
+        }).execute()
+        os.remove(unique_name)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Failed, error occurred when uploading the file {e}"})
+    else:
+        return JSONResponse(status_code=200, content={"message": "success"})
+
+def get_download_url(file_name):
+    try:
+        download_url = supabase.storage.from_("export_history").get_public_url(file_name)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Error occurred when fetchign download url {e}"})
+    else:    
+        return JSONResponse(status_code=200, content={download_url})
+
+def get_export_history(user_id):
+    try:
+        response = supabase.from_("export_history").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    except Exception as e:
+        print(e, flush=True)
+        return JSONResponse(status_code=500, content={"message": f"Failed getting export history, error {e}"})
+    data = response.data or []
+    print(response, flush=True)
+    export_history = [
+        {
+            "id": n["file_id"],
+            "filename": n["file_name"],
+            "records": n["record_count"],
+            "size": n["file_size"],
+            "format": n["file_type"],
+            "created_at": n["created_at"],
+        }
+        for n in data
+    ]
+    print(export_history, flush=True)
+    return JSONResponse(status_code=200, content=export_history)
+
+
 

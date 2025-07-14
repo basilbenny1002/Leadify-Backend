@@ -50,7 +50,14 @@ def run_Scraper(details: scrape_details):
 
 @router.get("/Twitch_scraper/get_progress")
 def get_progress(user_id: str):
-    return JSONResponse(status_code=200, content={k: v for k, v in active_scrapers[user_id].items() if (k != 'progress_data' and k!='process')})
+    try:
+        data = {k: v for k, v in active_scrapers[user_id].items() if (k != 'progress_data' and k!='process')}
+    except KeyError as e:
+        return JSONResponse(status_code=404, content={"message": "User id not found, user migth have been removed"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"Failed, error {e}"})
+    else:
+        return JSONResponse(status_code=200, content=data)
 
 
 @router.get("/twitch/categories")

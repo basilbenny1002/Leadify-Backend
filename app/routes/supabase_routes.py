@@ -7,10 +7,15 @@ from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_notification, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
+from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_notification, delete_saved_filter, get_download_url, get_export_history, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification, upload_file
 from typing import Optional
 
 load_config()
+class File(BaseModel):
+    user_id: str
+    data: str
+    file_type: str
+    file_name: str
 
 class History(BaseModel):
     user_id: str
@@ -197,5 +202,19 @@ def deleteNotification(notification: Notification_data):
     return delete_notification(notification.user_id, notification.notification_id)
 
         
+@router.post("/upload")
+def uploadFile(file: File):
+    return upload_file(file.user_id, file.data, file.file_type, file.file_name)
+
+
+@router.get("/export-history")
+def getExportHistory(user_id: str):
+    return get_export_history(user_id)
     
-    
+@router.get("/download")
+def download(file_id: str):
+    return get_download_url(file_id)
+
+@router.get("/stats")
+def getStats(user_id):
+    return JSONResponse(status_code=200, content={"total-searches":50, "total-exports":2, "streamers-found":984})
