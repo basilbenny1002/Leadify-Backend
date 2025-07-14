@@ -382,12 +382,27 @@ def add_search_history(user_id, title, result_count, category, language, min_fol
     else:
         return JSONResponse(status_code=200, content={"message": "Success"})
 
-def delete_notification(user_id: str):
+def delete_notification(user_id: str, notificationId: str):
+    try:
+        if notificationId:
+            supabase.from_("notifications").delete().eq("id", notificationId).eq("user_id", user_id).execute()
+        else:
+            supabase.from_("notifications").delete().eq("user_id", user_id).execute()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message: Failed {e}"})
+    else:
+        return JSONResponse(status_code=200, content={"message": "Success"})
 
-    raise NotImplementedError
-def mark_as_read(user_id: str):
-    raise NotImplementedError
-
+def mark_as_read(user_id: str, notificationId):
+    try:
+        if notificationId:
+            supabase.from_("notifications").update({ "read": True }).eq("id", notificationId).eq("user_id", user_id).execute()
+        else:
+            supabase.from_("notifications").update({ "read": True }).eq("user_id", user_id).execute()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message: Failed {e}"})
+    else:
+        return JSONResponse(status_code=200, content={"message": "Success"})
 
 def format_time_ago(created_at: str) -> str:
     created = datetime.datetime.fromisoformat(created_at.replace("Z", "+00:00"))

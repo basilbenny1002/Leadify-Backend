@@ -7,7 +7,7 @@ from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
+from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_notification, delete_saved_filter, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification
 from typing import Optional
 
 load_config()
@@ -21,6 +21,10 @@ class History(BaseModel):
     min_followers: int
     max_followers: int
     min_viewers: int
+
+class Notification_data(BaseModel):
+    user_id: str
+    notification_id: Optional[int] = None
 
 
 class Notifications(BaseModel):
@@ -149,9 +153,7 @@ async def delete_filter_route(filter_id: str, request: Request):
 
 @router.post("/search_history")
 def addSearchHistory(history: History):
-    return add_search_history()
-
-
+    return add_search_history(history.user_id, history.title, history.result_count, history.category, history.language, history.min_followers, history.max_followers, history.min_viewers)
     
 @router.get("/search_history")
 def getSearchHistory(user_id: str):
@@ -182,7 +184,17 @@ async def notifications_handler(request: Request):
         return {"success": True, "notifications": notifications}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
 
+@router.post("/notifications/mark-read")
+def markAsRead(notification: Notification_data):
+    print(notification, flush=True)
+    return mark_as_read(notification.user_id, notification.notification_id)
+
+@router.post("/notifications/delete")
+def deleteNotification(notification: Notification_data):
+    print(notification, flush=True)
+    return delete_notification(notification.user_id, notification.notification_id)
 
         
     
