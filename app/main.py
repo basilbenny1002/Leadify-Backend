@@ -26,7 +26,7 @@ load_config()
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://www.leadifysolutions.xyz", "http://www.leadifysolutions.xyz"],  # or ["*"] for all, but not safe for prod
+    allow_origins=["*"],  #["http://localhost:3000", "https://www.leadifysolutions.xyz", "http://www.leadifysolutions.xyz"] or ["*"] for all, but not safe for prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
