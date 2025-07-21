@@ -459,6 +459,6 @@ def start(min_f: int, max_f: int, choice_l: str, min_viewer_c: int, c: str, user
     # "Stage": 2,"Done": True, "search_id": search_id_uuid,
     #   "download_url": f"{os.getenv('SUPABASE_URL')}/storage/v1/object/public/results/{file_name}"
     # })  
-    time.sleep(10)
+    time.sleep(50)
     # os.remove(file_name)
     remove_progress(user_id)

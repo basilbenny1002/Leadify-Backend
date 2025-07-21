@@ -53,7 +53,13 @@ def category_to_id(category: str):
     with open(f"{os.path.join('app', 'utils', 'datas', 'categories.json')}", "r", encoding="utf-8") as f:
         data = json.load(f)
         return int(data[category])
+    
+
+
+
+
                   
 if __name__ == "__main__":
     # print(category_to_id("League of Legends"))
-    get_twitch_live_categories()
+    # get_twitch_live_categories()
+    pass
