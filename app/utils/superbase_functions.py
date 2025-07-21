@@ -104,6 +104,7 @@ def save_streamers_to_supabase(user_id: str, streamers: list[dict]):
             "tiktok": streamer.get("tiktok"),
             "linkedin": streamer.get("linkedin"),
             "discord": streamer.get("discord"),
+            "channel_url": streamer.get("channel_url"),
         }
 
         try:

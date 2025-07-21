@@ -24,6 +24,7 @@ CREDIT_COSTS = {
     "reveal_email": 2,
     "export_json": 3,
     "export_excel": 5,
+    "search": 1
 }
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
