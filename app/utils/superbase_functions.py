@@ -459,10 +459,19 @@ def format_bytes(size_bytes):
 
 def upload_file(user_id: str, data: json, file_type: str, file_name: str):
     try:
-        df = pd.DataFrame(data)
-        unique_name = f"{uuid.uuid4()}_{file_name}"
+        df = pd.DataFrame(list(data.values()))
+        id = uuid.uuid4()
         if file_type == "csv":
+            unique_name = f"{uuid.uuid4()}_{file_name}.csv"
             df.to_csv(path_or_buf=unique_name, index=False)
+        elif file_type == "json":
+            unique_name = f"{uuid.uuid4()}_{file_name}.json"
+            df.to_json(path_or_buf=unique_name, index=False)
+            pass
+        elif file_type == "xlsx":
+            unique_name = f"{uuid.uuid4()}_{file_name}.xlsx"
+            df.to_excel(path_or_buf=unique_name, index=False)
+            pass
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error occurred {e}"})
     try:
@@ -485,6 +494,7 @@ def upload_file(user_id: str, data: json, file_type: str, file_name: str):
         return JSONResponse(status_code=500, content={"message": f"Failed, error occurred when uploading the file {e}"})
     else:
         return JSONResponse(status_code=200, content={"message": "success"})
+
 
 def get_download_url(file_name):
     try:
