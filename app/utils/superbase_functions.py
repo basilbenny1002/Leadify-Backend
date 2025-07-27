@@ -105,6 +105,7 @@ def save_streamers_to_supabase(user_id: str, streamers: list[dict]):
             "tiktok": streamer.get("tiktok"),
             "linkedin": streamer.get("linkedin"),
             "discord": streamer.get("discord"),
+            "channel_url": streamer.get("channel_url"),
         }
 
         try:
@@ -463,6 +464,7 @@ def upload_file(user_id: str, data: object, file_type: str, file_name: str):
     string = str(data)
     data = json.loads(string) if isinstance(data, str) else data
     try:
+
         df = pd.DataFrame(data)
         if file_type == "csv":
             unique_name = f"{uuid.uuid4()}_{file_name}.csv"
@@ -476,6 +478,7 @@ def upload_file(user_id: str, data: object, file_type: str, file_name: str):
             unique_name = f"{uuid.uuid4()}_{file_name}.xlsx"
             content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             df.to_excel(excel_writer=unique_name, index=False)
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error occurred {e}"})
     try:
@@ -508,6 +511,7 @@ def upload_file(user_id: str, data: object, file_type: str, file_name: str):
         return JSONResponse(status_code=500, content={"message": f"Failed, error occurred when uploading the file {e}"})
     else:
         return JSONResponse(status_code=200, content={"message": "success"})
+
 
 def get_download_url(file_name):
     try:
