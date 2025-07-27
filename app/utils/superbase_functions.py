@@ -241,6 +241,42 @@ async def add_streamer_to_folder(user_id: str, streamer_id: str, folder_id: str)
         return {"error": response}
     return {"success": True}
 
+async def delete_streamer(user_id: str, streamer_id: str):
+    response = (
+        supabase
+        .from_("twitch_streamers")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("id", streamer_id)
+        .execute()
+    )
+    if not response.data:
+        return {"error": response}
+    return {"success": True}
+
+async def delete_folder_and_move_streamers(user_id: str, folder_id: str):
+    # Move streamers to default (null) folder
+    move_resp = (
+        supabase
+        .from_("twitch_streamers")
+        .update({"folder_id": None})
+        .eq("user_id", user_id)
+        .eq("folder_id", folder_id)
+        .execute()
+    )
+    # Delete the folder
+    del_resp = (
+        supabase
+        .from_("folders")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("id", folder_id)
+        .execute()
+    )
+    if not del_resp.data:
+        return {"error": del_resp}
+    return {"success": True}
+
 async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
     response = (
        supabase
@@ -457,8 +493,10 @@ def format_bytes(size_bytes):
         i += 1
     return f"{size_bytes:.2f} {units[i]}"
 
-def upload_file(user_id: str, data: json, file_type: str, file_name: str):
+def upload_file(user_id: str, data: object, file_type: str, file_name: str):
+
     try:
+        
         df = pd.DataFrame(list(data.values()))
         id = uuid.uuid4()
         if file_type == "csv":

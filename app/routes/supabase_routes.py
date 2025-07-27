@@ -7,13 +7,13 @@ from fastapi import Body, HTTPException, Request
 from app.utils.functions import load_config
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_notification, delete_saved_filter, get_download_url, get_export_history, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification, upload_file
+from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_folder_and_move_streamers, delete_notification, delete_saved_filter, delete_streamer, get_download_url, get_export_history, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification, upload_file
 from typing import Optional
 
 load_config()
 class File(BaseModel):
     user_id: str
-    data: str
+    data: object
     file_type: str
     file_name: str
 
@@ -90,6 +90,17 @@ async def get_folders_route(user_id: str = Query(...)):
     folders = await get_folders(user_id)
     return folders
 
+@router.delete("/folders/{folder_id}")
+async def delete_folder_route(folder_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+    try:
+        result = await delete_folder_and_move_streamers(user_id, folder_id)
+        return JSONResponse(status_code=200, content={"status": "deleted", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/streamers/{folder_id}")
 async def get_streamers_route(folder_id: str, user_id: str = Query(...)):
     streamers = await get_saved_streamers(user_id, folder_id)
@@ -132,6 +143,17 @@ async def save_filter_route(filter_data: FilterSave, request: Request):
     try:
         result = await save_filter_to_supabase(user_id, filter_data)
         return JSONResponse(status_code=200, content={"status": "saved", "data": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.delete("/streamers/{streamer_id}")
+async def delete_streamer_route(streamer_id: str, request: Request):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+    try:
+        result = await delete_streamer(user_id, streamer_id)
+        return JSONResponse(status_code=200, content={"status": "deleted", "data": result})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -204,6 +226,7 @@ def deleteNotification(notification: Notification_data):
         
 @router.post("/upload")
 def uploadFile(file: File):
+    print(file, flush=True)
     return upload_file(file.user_id, file.data, file.file_type, file.file_name)
 
 
