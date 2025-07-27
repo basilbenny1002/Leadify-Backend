@@ -457,29 +457,46 @@ def format_bytes(size_bytes):
         i += 1
     return f"{size_bytes:.2f} {units[i]}"
 
-def upload_file(user_id: str, data: json, file_type: str, file_name: str):
+def upload_file(user_id: str, data: object, file_type: str, file_name: str):
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    s: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    string = str(data)
+    data = json.loads(string) if isinstance(data, str) else data
     try:
-        df = pd.DataFrame(list(data.values()))
-        id = uuid.uuid4()
+
+        df = pd.DataFrame(data)
         if file_type == "csv":
             unique_name = f"{uuid.uuid4()}_{file_name}.csv"
+            content_type = "text/csv"
             df.to_csv(path_or_buf=unique_name, index=False)
         elif file_type == "json":
             unique_name = f"{uuid.uuid4()}_{file_name}.json"
-            df.to_json(path_or_buf=unique_name, index=False)
-            pass
+            content_type = "application/json"
+            df.to_json(path_or_buf=unique_name, orient="records", lines=True)
         elif file_type == "xlsx":
             unique_name = f"{uuid.uuid4()}_{file_name}.xlsx"
-            df.to_excel(path_or_buf=unique_name, index=False)
-            pass
+            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            df.to_excel(excel_writer=unique_name, index=False)
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error occurred {e}"})
     try:
-        file_size_bytes = os.path.getsize(unique_name)
-        size = format_bytes(file_size_bytes)
-        with open(unique_name, "rb") as f:
-            res = supabase.storage.from_("results").upload(unique_name, f)
-            print(res)
+        try:
+            file_size_bytes = os.path.getsize(unique_name)
+            size = format_bytes(file_size_bytes)
+            with open(unique_name, "rb") as f:
+                res = s.storage.from_("exports").upload(
+                        unique_name,
+                        f,
+                        {
+                            "content-type": f"{content_type}",
+                            "content-disposition": f'attachment; filename="{unique_name}"'
+                        }
+                    )                
+                print(res)
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"message": f"Error occurred in uploading thingy not table thingy {e}"})
         # download_url = supabase.storage.from_("results").get_public_url(unique_name)
         res =  supabase.table("export_history").insert({ 
         "user_id": user_id,
@@ -498,11 +515,11 @@ def upload_file(user_id: str, data: json, file_type: str, file_name: str):
 
 def get_download_url(file_name):
     try:
-        download_url = supabase.storage.from_("export_history").get_public_url(file_name)
+        download_url = supabase.storage.from_("exports").get_public_url(file_name)
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Error occurred when fetchign download url {e}"})
-    else:    
-        return JSONResponse(status_code=200, content={download_url})
+    else:
+        return JSONResponse(status_code=200, content={"download_url": download_url})
 
 def get_export_history(user_id):
     try:
