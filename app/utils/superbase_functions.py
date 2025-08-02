@@ -277,6 +277,20 @@ async def delete_folder_and_move_streamers(user_id: str, folder_id: str):
         return {"error": del_resp}
     return {"success": True}
 
+async def remove_streamer_from_folder(user_id: str, streamer_id: str):
+    response = (
+        supabase
+        .from_("twitch_streamers")
+        .update({"folder_id": None})
+        .eq("id", streamer_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not response.data:
+        return {"error": response}
+    return {"success": True}
+
 async def toggle_favourite(user_id: str, streamer_id: str, is_fav: bool):
     response = (
        supabase
