@@ -74,6 +74,7 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
 
     print(f"Found {len(streams)} streamers ")
     valid_streamers= 0
+    valid_streamer_list = []
     
     with tqdm(total=len(streams)) as pbar:
         # global elapsed, remaining, rate
@@ -100,6 +101,9 @@ def initial(user_id: str, streamers,game_id, min_followers: int, max_followers: 
                     'game_name': streams[i]['game_name'],
                     'followers': follower
                 }
+                if streams[i]['user_name'] in valid_streamer_list:
+                    continue
+                valid_streamer_list.append(streams[i]['user_name'])
                 streamers.append(streamer_info)
                 valid_streamers+=1
             elapsed = pbar.format_dict["elapsed"]
