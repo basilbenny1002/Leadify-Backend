@@ -8,7 +8,7 @@ from app.utils.functions import load_config
 import json
 from fastapi.responses import JSONResponse
 from fastapi import Query
-from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_folder_and_move_streamers, delete_notification, delete_saved_filter, delete_streamer, get_download_url, get_export_history, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification, upload_file
+from app.utils.superbase_functions import add_search_history, add_streamer_to_folder, create_folder, delete_folder_and_move_streamers, delete_notification, delete_saved_filter, delete_streamer, get_download_url, get_export_history, get_folders, get_saved_filters, get_saved_streamers, get_user_notifications, initialize_user_onSignup, mark_as_read, remove_streamer_from_folder, save_filter_to_supabase, save_streamers_to_supabase, toggle_favourite, get_search_history, add_notification, upload_file
 from typing import Optional, Union
 
 
@@ -59,6 +59,9 @@ class FilterSave(BaseModel):
     min_viewers: Optional[int]
     max_viewers: Optional[int]
     
+class RemoveStreamerRequest(BaseModel):
+    streamer_id: str
+
 
 router = APIRouter()
 
@@ -116,6 +119,22 @@ async def move_streamer_to_folder(payload: FolderMove, request: Request):
     print(payload)
     await add_streamer_to_folder(user_id, str(payload.streamer_id), str(payload.folder_id))
     return {"status": "moved"}
+
+@router.post("/streamers/remove-from-folder")
+async def remove_streamer_route(
+    request: Request,
+    data: RemoveStreamerRequest,
+):
+    user_id = request.headers.get("x-user-id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+
+    try:
+        print("streamer_id:", data.streamer_id)
+        result = await remove_streamer_from_folder(user_id, data.streamer_id)
+        return JSONResponse(status_code=200, content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/streamers/favourite")
 async def toggle_fav_route(payload: FavouriteToggle, request: Request):

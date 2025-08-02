@@ -42,6 +42,7 @@ async def run_Scraper(details: scrape_details):
 
     try:
         await deduct_credits(details.user_id, "search")
+        print("route hit")
         thread = CancellableThread(target=start,kwargs={"c":category_to_id(details.category), "user_id":details.user_id, "min_f":details.minimum_followers if details.minimum_followers else ANYT, "choice_l":details.language if details.language else ANYT, "min_viewer_c":details.viewer_count if details.viewer_count else ANYT, "max_f": details.maximum_followers if details.maximum_followers else ANYT})
         thread.start()
         if details.user_id not in active_scrapers:
