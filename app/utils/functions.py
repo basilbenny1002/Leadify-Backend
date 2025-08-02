@@ -5,7 +5,8 @@ import os
 import requests
 from dotenv import load_dotenv
 load_dotenv()
-def get_twitch_live_categories(max_pages=696969): #Funny number
+
+def get_twitch_live_categories(max_pages=696969, min_count=0):  # Added min_count
     headers = {
         'Client-ID': os.getenv('client_id'),
         'Authorization': f"Bearer {os.getenv('access_token')}"
@@ -34,16 +35,23 @@ def get_twitch_live_categories(max_pages=696969): #Funny number
                 category_viewers[category] = viewers
 
         # Pagination
-        if 'pagination' in data and 'cursor' in data['pagination']:
+        if 'pagination' in data and 'cursor' in data['pagination'] and pages_fetched < max_pages:
             params['after'] = data['pagination']['cursor']
             pages_fetched += 1
+            print(f"Fetched page {pages_fetched} with {len(data['data'])} streams")
         else:
             break
-    sorted_category_viewers = dict(sorted(category_viewers.items(), key=lambda item: item[1], reverse=True))
-    # return category_viewers
+
+    # Filter categories with viewers >= min_count
+    filtered_category_viewers = {k: v for k, v in category_viewers.items() if v >= min_count}
+
+    # Sort by viewer count descending
+    sorted_category_viewers = dict(sorted(filtered_category_viewers.items(), key=lambda item: item[1], reverse=True))
+
+    # Save to JSON
     with open(r"Leadify-Backend\app\utils\datas\live_data.json", "w", encoding="utf-8") as f:
-        # print(category_viewers[50:])
-        json.dump(sorted_category_viewers,f, indent=2)
+        json.dump(sorted_category_viewers, f, indent=2)
+
 
 
 def load_config():
@@ -54,6 +62,7 @@ def category_to_id(category: str):
         data = json.load(f)
         return int(data[category])
     
+    
 
 
 
@@ -61,5 +70,5 @@ def category_to_id(category: str):
                   
 if __name__ == "__main__":
     # print(category_to_id("League of Legends"))
-    # get_twitch_live_categories()
+    get_twitch_live_categories()
     pass

@@ -64,17 +64,55 @@ def get_progress(user_id: str):
         return JSONResponse(status_code=200, content=data)
 
 
-@router.get("/twitch/categories")
-def get_categories(eligible: bool):
-    with open(r".\app\utils\datas\categories.json", 'r', encoding='utf-8') as file:
+@router.get("/categories")
+def get_categories():
+    with open(r".\app\utils\datas\live_data.json", 'r', encoding='utf-8') as file:
         data = json.load(file)
-        return JSONResponse(status_code=200, content={i:("" if not eligible else data[i])for i in data})
-    
-@router.get("/twitch/live_categories")
+        return JSONResponse(
+            status_code=200,
+            content={"data": [{"name": k, "value": k, "viewers": v} for k, v in data.items() if v > 100]}
+        )
+
+@router.get("/languages")
 def get_languages():
-    with open(r".\app\utils\datas\live_categories.json", 'r', encoding='utf-8') as file:
-        data = json.loads(file)
-        return JSONResponse(status_code=200, content=data)
+    languages_raw = [
+        { "Arabic": "ar" },
+        { "Bulgarian": "bg" },
+        { "Czech": "cs" },
+        { "Danish": "da" },
+        { "German": "de" },
+        { "Greek": "el" },
+        { "English": "en" },
+        { "Spanish": "es" },
+        { "Finnish": "fi" },
+        { "French": "fr" },
+        { "Hebrew": "he" },
+        { "Hindi": "hi" },
+        { "Hungarian": "hu" },
+        { "Indonesian": "id" },
+        { "Italian": "it" },
+        { "Japanese": "ja" },
+        { "Korean": "ko" },
+        { "Malay": "ms" },
+        { "Dutch": "nl" },
+        { "Norwegian": "no" },
+        { "Polish": "pl" },
+        { "Portuguese": "pt" },
+        { "Romanian": "ro" },
+        { "Russian": "ru" },
+        { "Swedish": "sv" },
+        { "Thai": "th" },
+        { "Turkish": "tr" },
+        { "Ukrainian": "uk" },
+        { "Vietnamese": "vi" },
+        { "Chinese": "zh" }
+    ]
+    twitch_languages = [{"name": k, "value": v} for lang in languages_raw for k, v in lang.items()]
+
+    return JSONResponse(status_code=200, content={"data": twitch_languages})
+    
+
+
     
     
 @router.post("/Twitch_scraper/terminate")
