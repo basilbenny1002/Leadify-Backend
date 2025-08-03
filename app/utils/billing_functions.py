@@ -43,8 +43,11 @@ async def process_order_event(payload: str, user_id: dict):
 
     print(variant_id)
 
-    customer_relationship = data.get("relationships", {}).get("customer", {})
-    customer_id = customer_relationship.get("data", {}).get("id")
+
+    
+    customer_id = attributes.get("customer_id")
+
+    print("customer id", customer_id)
 
     # Add credits based on the credit pack variant
     await add_credits(user_id=user_id, variant_id=variant_id,reason="Credit Pack Purchase", credit_type="topup")
