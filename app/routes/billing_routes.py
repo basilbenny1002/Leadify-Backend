@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
+import httpx
 from pydantic import BaseModel
 from datetime import datetime
 from fastapi import APIRouter
@@ -6,7 +7,7 @@ from fastapi import Depends, Header, HTTPException
 import jwt
 import os
 from supabase import create_client, Client
-from app.utils.billing_functions import deduct_credits
+from app.utils.billing_functions import calculate_proration_logic, cancel_subscription_logic, deduct_credits, fetch_invoices_logic
 from app.utils.authorization import verify_jwt
 import uuid
 
@@ -16,11 +17,57 @@ class RevealRequest(BaseModel):
 # SUPABASE_SECRET = os.getenv("JWT_SUPABASE_SECRET")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+LEMON_API_KEY = os.getenv("LEMON_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 
 router = APIRouter()
+
+@router.post("/subscription/calculate-proration")
+async def calculate_proration_route(request: Request, user=Depends(verify_jwt)):
+    data = await request.json()
+    new_plan_id = data.get("planId")
+    is_yearly = data.get("isYearly")
+
+    if not new_plan_id:
+        raise HTTPException(400, "Missing planId")
+
+    proration_amount = await calculate_proration_logic(user["sub"], new_plan_id, is_yearly)
+    return {"prorationAmount": proration_amount}
+
+@router.post("/subscription/cancel")
+async def cancel_subscription(user=Depends(verify_jwt)):
+    user_id = user["sub"]
+    return await cancel_subscription_logic(user_id)
+
+@router.get("/subscription/customer-portal")
+async def get_customer_portal(user_id = Depends(verify_jwt)):
+    response = await supabase.table("users").select("lemon_customer_id").eq("id", user_id).single().execute()
+
+    customer_id = response.data.get("lemon_customer_id")
+
+
+    if not customer_id:
+            raise HTTPException(status_code=404, detail="Customer ID not found")
+    
+    # Call LemonSqueezy to get portal link
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.lemonsqueezy.com/v1/customer-portal",
+            headers={
+                "Authorization": f"Bearer {LEMON_API_KEY}",
+                "Accept": "application/vnd.api+json",
+                "Content-Type": "application/json",
+            },
+            json={"customer_id": customer_id},
+        )
+
+        if response.status_code == 201:
+            return response.json()["data"]["attributes"]
+        
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create customer portal")
 
 # def get_current_user_id(authorization: str = Header(...)):
 #     token = authorization.split(" ")[1]
