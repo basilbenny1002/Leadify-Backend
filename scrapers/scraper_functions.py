@@ -305,7 +305,15 @@ def get_live_streams(game_id: str, client_id, access_token):
 
     all_streams = []
     while True:
+
+        headers = {
+        "Client-ID": client_id,
+        "Authorization": f"Bearer {access_token}"
+        }
         response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 401:
+            access_token = get_twitch_access_token()
+            continue  # Retry with new access token
         response.raise_for_status()
         data = response.json()
 
@@ -723,18 +731,35 @@ def get_twitch_details_aws(url: str, ):
         }
 
 
+def get_twitch_access_token() -> str:
+    url = "https://id.twitch.tv/oauth2/token"
+    payload = {
+        "client_id": os.getenv("client_id"),
+        "client_secret": os.getenv("client_secret"),
+        "grant_type": "client_credentials"
+    }
 
+    response = requests.post(url, data=payload)
+    response.raise_for_status()  # Raise error if request failed
+    access_token = response.json()["access_token"]
+    try:
+        os.environ["access_token"] = access_token
+        print("Access token set in environment (for this process).")
+    except Exception as e:
+        print(f"Failed to set access token in environment: {e}", flush=True)
+
+    return access_token
 
 if __name__ == "__main__":
 
    
-    resp = requests.post(
-    "http://localhost:3000/api/twitch-about",
-    data=json.dumps({"channelName": "phoenixsclive", "channelID": "82826005"}),
-    headers={"Content-Type": "application/json"},
-    )
-    print(resp.status_code)
-    print(resp.json())
+    # resp = requests.post(
+    # "http://localhost:3000/api/twitch-about",
+    # data=json.dumps({"channelName": "phoenixsclive", "channelID": "82826005"}),
+    # headers={"Content-Type": "application/json"},
+    # )
+    # print(resp.status_code)
+    # print(resp.json())
     # print(resp.text)
     
     
