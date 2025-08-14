@@ -43,18 +43,15 @@ async def cancel_subscription(user=Depends(verify_jwt)):
 
 @router.get("/subscription/customer-portal")
 async def get_customer_portal(user_id = Depends(verify_jwt)):
-    response = await supabase.table("users").select("lemon_customer_id").eq("id", user_id).single().execute()
-
+    response = supabase.from_("users").select("lemon_customer_id").eq("id", user_id).single().execute()
     customer_id = response.data.get("lemon_customer_id")
-
-
     if not customer_id:
             raise HTTPException(status_code=404, detail="Customer ID not found")
     
     # Call LemonSqueezy to get portal link
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "https://api.lemonsqueezy.com/v1/customer-portal",
+            f"https://api.lemonsqueezy.com/v1/subscriptions/1273743",
             headers={
                 "Authorization": f"Bearer {LEMON_API_KEY}",
                 "Accept": "application/vnd.api+json",
@@ -62,6 +59,7 @@ async def get_customer_portal(user_id = Depends(verify_jwt)):
             },
             json={"customer_id": customer_id},
         )
+        print("response : ",response, flush=True)
 
         if response.status_code == 201:
             return response.json()["data"]["attributes"]
@@ -88,7 +86,7 @@ async def buy_credits(
     user_id = supabase_user["sub"]
 
     # 1. Add credits to the user's balance
-    update_response = supabase.table("users").update({
+    update_response = supabase.from_("users").update({
         "credits": f"credits + {credits_to_add}"
     }).eq("id", user_id).execute()
 
@@ -150,7 +148,7 @@ async def reveal_email(
         await deduct_credits(userId, "reveal_email")
 
         # Update the email_revealed column for this user + streamer
-        supabase.table("twitch_streamers") \
+        supabase.from_("twitch_streamers") \
             .update({"email_revealed": True}) \
             .eq("id", streamer_id) \
             .eq("user_id", userId) \
